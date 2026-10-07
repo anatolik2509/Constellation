@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Constellation</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <aside id="panel">
+    <h1>Constellation</h1>
+    <div id="stats" class="stats"></div>
+
+    <section>
+      <h2>Nodes</h2>
+      <div id="kindFilters" class="filters"></div>
+    </section>
+
+    <section>
+      <h2>Edges</h2>
+      <div id="edgeFilters" class="filters"></div>
+    </section>
+
+    <section>
+      <h2>Packages
+        <span class="pkg-actions">
+          <button id="pkgAll" class="mini" type="button">all</button>
+          <button id="pkgNone" class="mini" type="button">none</button>
+        </span>
+      </h2>
+      <input id="pkgSearch" type="search" placeholder="Filter packages…" autocomplete="off">
+      <div id="pkgFilters" class="filters pkg-list"></div>
+    </section>
+
+    <div class="panel-footer">
+      <button id="relayout" type="button">Relayout</button>
+      <span id="counts" class="counts"></span>
+    </div>
+  </aside>
+
+  <main id="cy"></main>
+
+  <aside id="sidebar" hidden></aside>
+  <div id="empty" hidden></div>
+
+  <script src="vendor/layout-base.js"></script>
+  <script src="vendor/cose-base.js"></script>
+  <script src="vendor/cytoscape.min.js"></script>
+  <script src="vendor/cytoscape-fcose.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
