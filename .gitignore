@@ -40,4 +40,5 @@ bin/
 .DS_Store
 
 .claude
-mcp.json
+.mcp.json
+.mcp.json
