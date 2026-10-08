@@ -108,7 +108,15 @@ object GraphJson {
         key("analyzedClasses"); int(g.stats.analyzedClasses)
         key("skippedSynthetic"); int(g.stats.skippedSynthetic)
         key("duplicatesSkipped"); int(g.stats.duplicatesSkipped)
-        key("parseErrors"); int(g.stats.parseErrors)
+        key("parseErrors")
+        arr {
+            for (e in g.stats.parseErrors) {
+                obj {
+                    key("origin"); str(e.origin)
+                    key("message"); str(e.message)
+                }
+            }
+        }
 
         key("kinds")
         obj {

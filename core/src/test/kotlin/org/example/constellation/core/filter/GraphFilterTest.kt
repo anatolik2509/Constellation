@@ -30,7 +30,7 @@ class GraphFilterTest {
             Edge("app.Service", "lib.Util", EdgeType.CALL),
             Edge("app.Dto", "app.Api", EdgeType.INHERITANCE),
         )
-        return CodeGraph(nodes, edges, org.example.constellation.core.model.GraphStats(4, 0, 0, 0, emptyList()))
+        return CodeGraph(nodes, edges, org.example.constellation.core.model.GraphStats(4, 0, 0, emptyList(), emptyList()))
     }
 
     @Test

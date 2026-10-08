@@ -27,7 +27,10 @@ fun main(args: Array<String>) {
 
     val graph = BytecodeAnalyzer(paths).analyze()
     with(graph.stats) {
-        println("Analyzed $analyzedClasses classes from ${paths.size} path(s) — ${graph.edges.size} edges, $parseErrors parse errors")
+        println("Analyzed $analyzedClasses classes from ${paths.size} path(s) — ${graph.edges.size} edges, ${parseErrors.size} parse errors")
+        for (err in parseErrors) {
+            println("  parse error: ${err.origin}: ${err.message}")
+        }
         if (analyzedClasses == 0) {
             println("Warning: no classes found under $paths — serving an empty graph. Did you build the target project?")
         }

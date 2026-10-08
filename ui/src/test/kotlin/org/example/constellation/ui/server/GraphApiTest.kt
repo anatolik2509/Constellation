@@ -8,6 +8,7 @@ import org.example.constellation.core.model.MethodRef
 import org.example.constellation.core.model.Node
 import org.example.constellation.core.model.NodeCategory
 import org.example.constellation.core.model.NodeKind
+import org.example.constellation.core.model.ParseError
 import org.example.constellation.core.filter.FilterSpec
 import org.example.constellation.ui.json.JsonWriter
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -61,7 +62,14 @@ class GraphJsonTest {
             Edge("demo.Foo", "java.lang.String", EdgeType.CALL,
                  methods = listOf(MethodRef("valueOf", "(I)Ljava/lang/String;"))),
         )
-        return CodeGraph(nodes, edges, GraphStats(2, 0, 0, 0, listOf("/tmp/x")))
+        return CodeGraph(
+            nodes, edges,
+            GraphStats(
+                2, 0, 0,
+                parseErrors = listOf(ParseError("/tmp/x!/Broken.class", "bad constant pool")),
+                sources = listOf("/tmp/x"),
+            ),
+        )
     }
 
     @Test
@@ -83,6 +91,9 @@ class GraphJsonTest {
         assertTrue(json.contains("\"CALL\":1"))
         // external package java.lang must not be offered in the package list
         assertTrue(json.contains("\"name\":\"demo\""))
+        // parse errors carry their origin
+        assertTrue(json.contains("\"origin\":\"/tmp/x!/Broken.class\""))
+        assertTrue(json.contains("\"message\":\"bad constant pool\""))
     }
 
     @Test

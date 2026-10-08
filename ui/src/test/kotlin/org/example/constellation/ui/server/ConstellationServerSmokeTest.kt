@@ -23,7 +23,7 @@ class ConstellationServerSmokeTest {
             Node("demo.Bar", NodeKind.CLASS, pkg = "demo", simpleName = "Bar"),
         ),
         edges = listOf(Edge("demo.Foo", "demo.Bar", EdgeType.CALL)),
-        stats = GraphStats(2, 0, 0, 0, emptyList()),
+        stats = GraphStats(2, 0, 0, emptyList(), emptyList()),
     )
 
     @Test

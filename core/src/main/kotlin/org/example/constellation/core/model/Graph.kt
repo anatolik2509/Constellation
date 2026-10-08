@@ -47,11 +47,14 @@ data class Edge(
     val methods: List<MethodRef> = emptyList(),
 )
 
+/** A class file the analyzer failed to parse; [origin] is the jar/path it came from. */
+data class ParseError(val origin: String, val message: String)
+
 data class GraphStats(
     val analyzedClasses: Int,
     val skippedSynthetic: Int,
     val duplicatesSkipped: Int,
-    val parseErrors: Int,
+    val parseErrors: List<ParseError>,
     val sources: List<String>,
 )
 

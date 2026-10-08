@@ -196,6 +196,22 @@ class BytecodeAnalyzerTest {
     }
 
     @Test
+    fun `parse error carries the class file origin`() {
+        val jar = tmp.resolve("broken.jar")
+        JarOutputStream(Files.newOutputStream(jar)).use { jos ->
+            jos.putNextEntry(JarEntry("broken/Broken.class"))
+            // plausible magic, garbage after it
+            jos.write(byteArrayOf(0xCA.toByte(), 0xFE.toByte(), 0xBA.toByte(), 0xBE.toByte(), 9, 9, 9, 9))
+            jos.closeEntry()
+        }
+        val g = BytecodeAnalyzer(listOf(jar)).analyze()
+        assertEquals(1, g.stats.parseErrors.size)
+        val err = g.stats.parseErrors.first()
+        assertTrue(err.origin.endsWith("broken.jar!/broken/Broken.class"))
+        assertTrue(err.message.isNotBlank())
+    }
+
+    @Test
     fun `duplicate fqn - first wins and counted`() {
         val single = analyze()
         val doubled = BytecodeAnalyzer(listOf(demoDir, demoDir)).analyze()

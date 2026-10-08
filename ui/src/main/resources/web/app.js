@@ -123,7 +123,7 @@ function updateMetaInfo() {
   const m = state.meta;
   document.getElementById('stats').innerHTML =
     `<b>${m.analyzedClasses}</b> classes · <b>${sum(Object.values(m.edgeTypes))}</b> relations` +
-    (m.parseErrors > 0 ? ` · <span class="warn">${m.parseErrors} parse errors</span>` : '');
+    ((m.parseErrors && m.parseErrors.length > 0) ? ` · <span class="warn">${m.parseErrors.length} parse errors</span>` : '');
   for (const c of CATEGORIES) {
     setCount(`kind-${c.id}`, m.kinds[c.id] ?? 0);
   }

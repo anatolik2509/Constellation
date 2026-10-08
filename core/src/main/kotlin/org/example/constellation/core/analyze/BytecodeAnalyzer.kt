@@ -7,6 +7,7 @@ import org.example.constellation.core.model.GraphStats
 import org.example.constellation.core.model.MethodRef
 import org.example.constellation.core.model.Node
 import org.example.constellation.core.model.NodeKind
+import org.example.constellation.core.model.ParseError
 import org.example.constellation.core.util.Names
 import org.objectweb.asm.Opcodes
 import java.nio.file.Path
@@ -26,13 +27,13 @@ class BytecodeAnalyzer(private val paths: List<Path>) {
         val excluded = LinkedHashMap<String, RawClassInfo>()
         var skippedSynthetic = 0
         var duplicatesSkipped = 0
-        var parseErrors = 0
+        val parseErrors = mutableListOf<ParseError>()
 
         for (entry in ClassFileProvider(paths).entries()) {
             val info = try {
                 scanner.scan(entry.bytes)
-            } catch (_: RuntimeException) {
-                parseErrors++
+            } catch (e: RuntimeException) {
+                parseErrors += ParseError(entry.origin, e.message ?: e.javaClass.simpleName)
                 continue
             }
             if (info.access and Opcodes.ACC_SYNTHETIC != 0 || isExcludedClassName(info.name)) {
