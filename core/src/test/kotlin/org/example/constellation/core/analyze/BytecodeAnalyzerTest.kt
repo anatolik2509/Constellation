@@ -123,6 +123,41 @@ class BytecodeAnalyzerTest {
     }
 
     @Test
+    fun `java anonymous class calls are attributed to enclosing class`() {
+        val g = analyze()
+        // ping() is called only inside DogService$1.run(); without EnclosingMethod attribution
+        // that edge would be lost together with the excluded class.
+        val e = edge(g, "demo.animal.DogService", "extlib.Side", EdgeType.CALL)
+        assertNotNull(e)
+        assertTrue(e!!.methods.any { it.name == "ping" })
+        assertTrue(e.methods.any { it.name == "<init>" })
+    }
+
+    /**
+     * Kotlin fixture: this test's own compiled classes. kotlinc compiles the anonymous object
+     * below into `BytecodeAnalyzerTest$attributedCallSink$fn$1` — a `Foo$bar$1`-shape class —
+     * whose EnclosingMethod attribute points back at [BytecodeAnalyzerTest].
+     */
+    private fun attributedCallSink(s: String): Int {
+        val fn = object : (String) -> Int {
+            override fun invoke(value: String): Int = System.identityHashCode(value) + s.length
+        }
+        return fn(s)
+    }
+
+    @Test
+    fun `kotlin anonymous object calls are attributed to enclosing class`() {
+        attributedCallSink("x") // keep the helper referenced; its class file is the fixture
+        val ownClasses = Path.of(javaClass.protectionDomain.codeSource.location.toURI())
+        val g = BytecodeAnalyzer(listOf(ownClasses)).analyze()
+        // identityHashCode is called only from inside the anonymous object; the edge exists
+        // only if the analyzer attributed it via EnclosingMethod.
+        val e = edge(g, "org.example.constellation.core.analyze.BytecodeAnalyzerTest", "java.lang.System", EdgeType.CALL)
+        assertNotNull(e)
+        assertTrue(e!!.methods.any { it.name == "identityHashCode" })
+    }
+
+    @Test
     fun `named nested classes are kept`() {
         val g = analyze()
         val inner = node(g, "demo.nested.Outer\$Inner")

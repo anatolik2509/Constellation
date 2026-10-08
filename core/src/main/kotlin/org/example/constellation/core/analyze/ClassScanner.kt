@@ -11,6 +11,9 @@ internal class RawMethod(val name: String, val descriptor: String, val access: I
 
 internal class RawCall(val owner: String, val name: String, val descriptor: String)
 
+/** EnclosingMethod attribute: [owner] class plus the method the class is declared in, if any. */
+internal class RawEnclosing(val owner: String, val name: String?, val descriptor: String?)
+
 internal class RawClassInfo(
     val name: String,
     val access: Int,
@@ -22,6 +25,12 @@ internal class RawClassInfo(
     val methods: List<RawMethod>,
     val calls: List<RawCall>,
     val sourceFile: String?,
+    /** EnclosingMethod attribute — the natural owner of anonymous/local/synthetic bodies. */
+    val enclosingMethod: RawEnclosing? = null,
+    /** NestHost attribute. */
+    val nestHost: String? = null,
+    /** This class's own InnerClasses entry: declared outer class (null when anonymous/local). */
+    val innerOuterName: String? = null,
 )
 
 /** Single-class ASM extraction. Only SKIP_FRAMES: SKIP_DEBUG would drop visitSource, SKIP_CODE the calls. */
@@ -38,6 +47,9 @@ internal class ClassScanner {
         private var access: Int = 0
         private var superName: String? = null
         private var sourceFile: String? = null
+        private var enclosingMethod: RawEnclosing? = null
+        private var nestHost: String? = null
+        private var innerOuterName: String? = null
         private val interfaces = mutableListOf<String>()
         private val instanceFields = mutableListOf<String>()
         private val recordComponents = mutableListOf<String>()
@@ -54,6 +66,9 @@ internal class ClassScanner {
             methods = methods.toList(),
             calls = calls.toList(),
             sourceFile = sourceFile,
+            enclosingMethod = enclosingMethod,
+            nestHost = nestHost,
+            innerOuterName = innerOuterName,
         )
 
         override fun visit(
@@ -72,6 +87,18 @@ internal class ClassScanner {
 
         override fun visitSource(source: String?, debug: String?) {
             sourceFile = source
+        }
+
+        override fun visitNestHost(nestHost: String?) {
+            this.nestHost = nestHost
+        }
+
+        override fun visitOuterClass(owner: String?, name: String?, descriptor: String?) {
+            if (owner != null) enclosingMethod = RawEnclosing(owner, name, descriptor)
+        }
+
+        override fun visitInnerClass(name: String?, outerName: String?, innerName: String?, access: Int) {
+            if (name == this.name) innerOuterName = outerName
         }
 
         override fun visitRecordComponent(

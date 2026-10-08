@@ -161,7 +161,7 @@ val RICH_FIXTURE: Map<String, String> = mapOf(
             public void twice() { walk(new Dog()); }
             public void anon() {
                 Runnable r = new Runnable() {
-                    @Override public void run() { }
+                    @Override public void run() { new extlib.Side().ping(); }
                 };
                 r.run();
             }
@@ -231,6 +231,14 @@ val RICH_FIXTURE: Map<String, String> = mapOf(
         package extlib;
         public class Util {
             public void go() { }
+        }
+    """.trimIndent(),
+
+    /** Referenced only from inside DogService's anonymous class body. */
+    "extlib/Side.java" to """
+        package extlib;
+        public class Side {
+            public void ping() { }
         }
     """.trimIndent(),
 )
