@@ -19,7 +19,10 @@ kotlin {
 }
 
 tasks.test {
-    useJUnitPlatform()
+    // perf-smoke runs with the normal suite; exclude it with -PskipPerfSmoke
+    useJUnitPlatform {
+        if (project.hasProperty("skipPerfSmoke")) excludeTags("perf-smoke")
+    }
     testLogging {
         events("failed", "skipped")
     }
