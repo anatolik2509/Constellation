@@ -9,6 +9,7 @@ repositories {
 
 dependencies {
     implementation(project(":core"))
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.3")
 
     testImplementation(platform("org.junit:junit-bom:6.0.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")

@@ -10,7 +10,6 @@ import org.example.constellation.core.model.NodeCategory
 import org.example.constellation.core.model.NodeKind
 import org.example.constellation.core.model.ParseError
 import org.example.constellation.core.filter.FilterSpec
-import org.example.constellation.webui.json.JsonWriter
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -97,26 +96,15 @@ class GraphJsonTest {
     }
 
     @Test
-    fun `json writer escapes quotes, backslashes and non-ascii`() {
-        val json = JsonWriter().obj {
-            key("s"); str("a\"b\\c\nд")
-        }.toString()
-        assertEquals("{\"s\":\"a\\\"b\\\\c\\n\\u0434\"}", json)
-    }
-
-    @Test
-    fun `json writer handles nesting and arrays`() {
-        val json = JsonWriter().obj {
-            key("a"); int(1)
-            key("b")
-            arr {
-                str("x")
-                obj {
-                    key("c"); bool(true)
-                }
-            }
-            key("d"); str("v")
-        }.toString()
-        assertEquals("{\"a\":1,\"b\":[\"x\",{\"c\":true}],\"d\":\"v\"}", json)
+    fun `graph json is valid json and escapes special characters`() {
+        val weird = Node(
+            "demo.Quote\"Back\\slash", NodeKind.CLASS,
+            pkg = "demo", simpleName = "Quote\"Back\\slash", sourceFile = "Класс.kt",
+        )
+        val json = GraphJson.graph(CodeGraph(listOf(weird), emptyList(), tinyGraph().stats))
+        // Jackson produces valid JSON; parse it back and check round-trip
+        val parsed = com.fasterxml.jackson.databind.ObjectMapper().readTree(json)
+        assertEquals("demo.Quote\"Back\\slash", parsed["nodes"][0]["id"].asText())
+        assertEquals("Класс.kt", parsed["nodes"][0]["sourceFile"].asText())
     }
 }

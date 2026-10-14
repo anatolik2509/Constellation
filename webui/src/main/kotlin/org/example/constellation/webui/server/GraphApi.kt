@@ -1,11 +1,18 @@
 package org.example.constellation.webui.server
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.JsonNodeFactory
+import com.fasterxml.jackson.databind.node.ObjectNode
 import org.example.constellation.core.filter.FilterSpec
 import org.example.constellation.core.model.CodeGraph
+import org.example.constellation.core.model.Edge
 import org.example.constellation.core.model.EdgeType
+import org.example.constellation.core.model.MethodRef
+import org.example.constellation.core.model.Node
 import org.example.constellation.core.model.NodeCategory
+import org.example.constellation.core.model.NodeKind
 import org.example.constellation.core.util.Descriptors
-import org.example.constellation.webui.json.JsonWriter
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -49,100 +56,90 @@ object GraphQuery {
 /** Pure JSON rendering of the graph and its meta information. */
 object GraphJson {
 
-    fun graph(g: CodeGraph): String = JsonWriter().obj {
-        key("nodes")
-        arr {
-            for (n in g.nodes) {
-                obj {
-                    key("id"); str(n.id)
-                    key("kind"); str(n.kind.name)
-                    key("category"); str(n.category.name)
-                    key("pojo"); bool(n.pojo)
-                    key("pkg"); str(n.pkg)
-                    key("simpleName"); str(n.simpleName)
-                    val sf = n.sourceFile
-                    if (sf != null) {
-                        key("sourceFile"); str(sf)
-                    }
-                    key("methods")
-                    arr {
-                        for (m in n.declaredMethods) {
-                            obj {
-                                key("name"); str(m.name)
-                                key("desc"); str(m.descriptor)
-                                key("display"); str(Descriptors.formatMethod(m.name, m.descriptor))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        key("edges")
-        arr {
-            for (e in g.edges) {
-                obj {
-                    key("from"); str(e.from)
-                    key("to"); str(e.to)
-                    key("type"); str(e.type.name)
-                    if (e.type == EdgeType.CALL) {
-                        key("methods")
-                        arr {
-                            for (m in e.methods) {
-                                obj {
-                                    key("name"); str(m.name)
-                                    key("display"); str(Descriptors.formatMethod(m.name, m.descriptor))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }.toString()
+    private val json = JsonNodeFactory.instance
+    private val mapper = ObjectMapper()
 
-    fun meta(g: CodeGraph): String = JsonWriter().obj {
-        key("sources")
-        arr {
-            for (s in g.stats.sources) str(s)
-        }
-        key("analyzedClasses"); int(g.stats.analyzedClasses)
-        key("skippedSynthetic"); int(g.stats.skippedSynthetic)
-        key("duplicatesSkipped"); int(g.stats.duplicatesSkipped)
-        key("parseErrors")
-        arr {
-            for (e in g.stats.parseErrors) {
-                obj {
-                    key("origin"); str(e.origin)
-                    key("message"); str(e.message)
-                }
-            }
-        }
+    fun graph(g: CodeGraph): String = mapper.writeValueAsString(
+        obj {
+            putArray("nodes").addAll(g.nodes.map(::nodeJson))
+            putArray("edges").addAll(g.edges.map(::edgeJson))
+        },
+    )
 
-        key("kinds")
+    fun meta(g: CodeGraph): String = mapper.writeValueAsString(
         obj {
-            for (cat in NodeCategory.entries) {
-                key(cat.name); int(g.nodes.count { it.category == cat })
-            }
-        }
-        key("edgeTypes")
-        obj {
-            for (t in EdgeType.entries) {
-                key(t.name); int(g.edges.count { it.type == t })
-            }
-        }
-        // Analyzed packages only; externals would dump half of the JDK here.
-        key("packages")
-        arr {
-            for ((pkg, count) in g.nodes
-                .filter { it.kind != org.example.constellation.core.model.NodeKind.EXTERNAL }
-                .groupBy { it.pkg }
-                .map { (pkg, ns) -> pkg to ns.size }
-                .sortedBy { it.first }) {
+            putArray("sources").addAll(g.stats.sources.map(json::textNode))
+            put("analyzedClasses", g.stats.analyzedClasses)
+            put("skippedSynthetic", g.stats.skippedSynthetic)
+            put("duplicatesSkipped", g.stats.duplicatesSkipped)
+            putArray("parseErrors").addAll(
+                g.stats.parseErrors.map { err ->
+                    obj {
+                        put("origin", err.origin)
+                        put("message", err.message)
+                    }
+                },
+            )
+            putObject("kinds").putCounts(NodeCategory.entries) { cat -> g.nodes.count { it.category == cat } }
+            putObject("edgeTypes").putCounts(EdgeType.entries) { type -> g.edges.count { it.type == type } }
+            // Analyzed packages only; externals would dump half of the JDK here.
+            putArray("packages").addAll(
+                g.nodes.filter { it.kind != NodeKind.EXTERNAL }
+                    .groupingBy { it.pkg }
+                    .eachCount()
+                    .toSortedMap()
+                    .map { (pkg, count) ->
+                        obj {
+                            put("name", pkg)
+                            put("count", count)
+                        }
+                    },
+            )
+        },
+    )
+
+    // ---------- node/edge payloads ----------
+
+    private fun nodeJson(n: Node): JsonNode = obj {
+        put("id", n.id)
+        put("kind", n.kind.name)
+        put("category", n.category.name)
+        put("pojo", n.pojo)
+        put("pkg", n.pkg)
+        put("simpleName", n.simpleName)
+        n.sourceFile?.let { put("sourceFile", it) }
+        putArray("methods").addAll(
+            n.declaredMethods.map { m ->
                 obj {
-                    key("name"); str(pkg)
-                    key("count"); int(count)
+                    put("name", m.name)
+                    put("desc", m.descriptor)
+                    put("display", Descriptors.formatMethod(m.name, m.descriptor))
                 }
-            }
+            },
+        )
+    }
+
+    private fun edgeJson(e: Edge): JsonNode = obj {
+        put("from", e.from)
+        put("to", e.to)
+        put("type", e.type.name)
+        if (e.type == EdgeType.CALL) {
+            putArray("methods").addAll(e.methods.map(::methodRefJson))
         }
-    }.toString()
+    }
+
+    private fun methodRefJson(m: MethodRef): JsonNode = obj {
+        put("name", m.name)
+        put("display", Descriptors.formatMethod(m.name, m.descriptor))
+    }
+
+    // ---------- small builders ----------
+
+    private inline fun obj(block: ObjectNode.() -> Unit): ObjectNode =
+        json.objectNode().apply(block)
+
+    /** Fills an object with `<enumName>: count` entries for every [values] element. */
+    private fun <T : Enum<T>> ObjectNode.putCounts(values: Collection<T>, count: (T) -> Int) {
+        for (v in values) put(v.name, count(v))
+    }
 }
