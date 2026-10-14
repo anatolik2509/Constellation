@@ -23,6 +23,8 @@ class BytecodeAnalyzer(private val paths: List<Path>) {
     /** Everything read off the class files in the scanning phase. */
     private class ScanResult(
         val analyzed: Map<String, RawClassInfo>,
+        /** Best-effort module name per analyzed class (from its class-file origin). */
+        val modules: Map<String, String?>,
         /** Digit-excluded classes, kept only to attribute their call edges to the enclosing class. */
         val excluded: Map<String, RawClassInfo>,
         val skippedSynthetic: Int,
@@ -36,7 +38,9 @@ class BytecodeAnalyzer(private val paths: List<Path>) {
         val scan = scanClasses()
 
         val nodes = sortedMapOf<String, Node>() // internal name -> Node
-        for (info in scan.analyzed.values) nodes[info.name] = toNode(info)
+        for (info in scan.analyzed.values) {
+            nodes[info.name] = toNode(info, scan.modules[info.name])
+        }
 
         val (edges, externals) = collectEdges(scan)
         for (external in externals) nodes[external] = toExternalNode(external)
@@ -59,6 +63,7 @@ class BytecodeAnalyzer(private val paths: List<Path>) {
     private fun scanClasses(): ScanResult {
         val scanner = ClassScanner()
         val analyzed = LinkedHashMap<String, RawClassInfo>()
+        val modules = HashMap<String, String?>()
         val excluded = LinkedHashMap<String, RawClassInfo>()
         var skippedSynthetic = 0
         var duplicatesSkipped = 0
@@ -78,14 +83,16 @@ class BytecodeAnalyzer(private val paths: List<Path>) {
             }
             if (analyzed.putIfAbsent(info.name, info) != null) {
                 duplicatesSkipped++
+            } else {
+                modules[info.name] = ModuleNames.of(entry.origin)
             }
         }
-        return ScanResult(analyzed, excluded, skippedSynthetic, duplicatesSkipped, parseErrors)
+        return ScanResult(analyzed, modules, excluded, skippedSynthetic, duplicatesSkipped, parseErrors)
     }
 
     // ---------- nodes ----------
 
-    private fun toNode(info: RawClassInfo): Node {
+    private fun toNode(info: RawClassInfo, module: String?): Node {
         val kind = kindOf(info.access)
         val dotName = Names.toDotName(info.name)
         return Node(
@@ -95,6 +102,7 @@ class BytecodeAnalyzer(private val paths: List<Path>) {
             pkg = Names.pkgOf(dotName),
             simpleName = Names.simpleNameOf(dotName),
             sourceFile = info.sourceFile,
+            module = module,
             declaredMethods = info.methods.asSequence()
                 .filter { it.access and (Opcodes.ACC_SYNTHETIC or Opcodes.ACC_BRIDGE) == 0 }
                 .map { MethodRef(it.name, it.descriptor) }

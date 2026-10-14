@@ -26,6 +26,8 @@ data class Node(
     val simpleName: String,
     /** SourceFile attribute; null for externals. */
     val sourceFile: String? = null,
+    /** Best-effort module name derived from the class file's origin; null for externals/unknown. */
+    val module: String? = null,
     /** Declared non-synthetic methods, sorted; empty for externals. */
     val declaredMethods: List<MethodRef> = emptyList(),
 ) {

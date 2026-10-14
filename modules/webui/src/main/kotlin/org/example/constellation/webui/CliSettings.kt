@@ -1,5 +1,6 @@
 package org.example.constellation.webui
 
+import org.example.constellation.webui.server.ConstellationServer.Companion.DEFAULT_PORT
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -25,7 +26,7 @@ data class CliSettings(
             val port = args.firstOrNull { it.startsWith("--port=") }
                 ?.removePrefix("--port=")
                 ?.toIntOrNull()
-                ?: 0
+                ?: DEFAULT_PORT
             return CliSettings(paths, port, openBrowser = "--no-browser" !in args)
         }
     }

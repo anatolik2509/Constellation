@@ -10,11 +10,12 @@ object FixtureCompiler {
 
     class Result(val srcDir: Path, val outDir: Path)
 
-    fun compile(base: Path, sources: Map<String, String>): Result {
+    /** [outRelative] controls the output layout — e.g. `mymodule/build/classes` for module-detection tests. */
+    fun compile(base: Path, sources: Map<String, String>, outRelative: String = "out"): Result {
         val compiler = ToolProvider.getSystemJavaCompiler()
             ?: error("system Java compiler unavailable")
         val srcDir = base.resolve("src")
-        val outDir = base.resolve("out")
+        val outDir = base.resolve(outRelative)
         val files = sources.map { (rel, text) ->
             val f = srcDir.resolve(rel)
             Files.createDirectories(f.parent)

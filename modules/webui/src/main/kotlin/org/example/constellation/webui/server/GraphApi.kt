@@ -20,9 +20,9 @@ import java.nio.charset.StandardCharsets
 object GraphQuery {
 
     /**
-     * Parses `kinds=CLASS,POJO&edges=CALL&pkgs=com.foo,org.bar`.
-     * A missing axis means "no restriction". Unknown enum tokens throw
-     * [IllegalArgumentException] (mapped to HTTP 400 by the server).
+     * Parses `kinds=CLASS,POJO&edges=CALL&pkgs=com.foo&xpkgs=java.*,kotlin.*`.
+     * A missing axis means "no restriction"; `xpkgs` excludes and wins over `pkgs`.
+     * Unknown enum tokens throw [IllegalArgumentException] (mapped to HTTP 400 by the server).
      */
     fun parse(query: String?): FilterSpec {
         if (query.isNullOrBlank()) return FilterSpec()
@@ -30,6 +30,7 @@ object GraphQuery {
         var kinds: Set<NodeCategory>? = null
         var edgeTypes: Set<EdgeType>? = null
         var packages: List<String>? = null
+        var excludedPackages: List<String>? = null
 
         for (raw in query.split('&')) {
             val eq = raw.indexOf('=')
@@ -42,6 +43,7 @@ object GraphQuery {
                 "edges" -> edgeTypes = value.split(',').filter { it.isNotBlank() }
                     .map { EdgeType.valueOf(it.trim()) }.toSet().takeIf { it.isNotEmpty() }
                 "pkgs" -> packages = value.split(',').map { it.trim() }.filter { it.isNotEmpty() }.takeIf { it.isNotEmpty() }
+                "xpkgs" -> excludedPackages = value.split(',').map { it.trim() }.filter { it.isNotEmpty() }.takeIf { it.isNotEmpty() }
             }
         }
 
@@ -49,6 +51,7 @@ object GraphQuery {
             kinds = kinds ?: NodeCategory.entries.toSet(),
             edgeTypes = edgeTypes ?: EdgeType.entries.toSet(),
             packages = packages ?: emptyList(),
+            excludedPackages = excludedPackages ?: emptyList(),
         )
     }
 }
@@ -108,6 +111,7 @@ object GraphJson {
         put("pkg", n.pkg)
         put("simpleName", n.simpleName)
         n.sourceFile?.let { put("sourceFile", it) }
+        n.module?.let { put("module", it) }
         putArray("methods").addAll(
             n.declaredMethods.map { m ->
                 obj {

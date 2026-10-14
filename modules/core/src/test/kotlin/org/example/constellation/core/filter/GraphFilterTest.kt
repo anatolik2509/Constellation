@@ -110,4 +110,23 @@ class GraphFilterTest {
         assertTrue(out2.nodes.any { it.id == "lib.Util" })
         assertTrue(out2.edges.any { it.to == "lib.Util" })
     }
+
+    @Test
+    fun `excluded packages drop matching nodes whatever else is selected`() {
+        val out = GraphFilter.apply(
+            graph(),
+            FilterSpec(excludedPackages = listOf("lib", "java.*")),
+        )
+        assertFalse(out.nodes.any { it.id == "lib.Util" })
+        assertTrue(out.edges.none { it.to == "lib.Util" })
+        // non-matching nodes stay
+        assertTrue(out.nodes.any { it.id == "app.Service" })
+
+        // exclusion wins over inclusion of the same package
+        val both = GraphFilter.apply(
+            graph(),
+            FilterSpec(packages = listOf("lib"), excludedPackages = listOf("lib")),
+        )
+        assertTrue(both.nodes.none { it.id == "lib.Util" })
+    }
 }

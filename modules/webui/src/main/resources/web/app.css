@@ -141,12 +141,31 @@ section { border-top: 1px solid var(--hairline); padding-top: 12px; }
 
 .panel-footer {
   margin-top: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
   border-top: 1px solid var(--hairline);
   padding-top: 12px;
 }
+
+.panel-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.toggle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.toggle:hover { background: rgba(255, 255, 255, 0.04); }
+.toggle input[type="checkbox"] { accent-color: var(--ink-2); margin: 0; }
+.toggle .hint { color: var(--ink-3); font-size: 11px; }
+
+#hideRuntime { margin-bottom: 6px; }
 
 #relayout {
   background: var(--surface-2);

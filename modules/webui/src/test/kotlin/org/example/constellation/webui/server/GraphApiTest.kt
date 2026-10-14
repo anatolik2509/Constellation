@@ -32,6 +32,15 @@ class GraphQueryTest {
     }
 
     @Test
+    fun `parses excluded packages`() {
+        val spec = GraphQuery.parse("xpkgs=java.*,kotlin.*")
+        assertEquals(listOf("java.*", "kotlin.*"), spec.excludedPackages)
+        // absent and empty both mean "no exclusions"
+        assertEquals(emptyList<String>(), GraphQuery.parse("kinds=CLASS").excludedPackages)
+        assertEquals(emptyList<String>(), GraphQuery.parse("xpkgs=").excludedPackages)
+    }
+
+    @Test
     fun `unknown axis is ignored, empty values mean all`() {
         val spec = GraphQuery.parse("kinds=&edges=CALL&pkgs=&other=1")
         assertEquals(NodeCategory.entries.toSet(), spec.kinds)

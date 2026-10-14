@@ -9,11 +9,14 @@ import org.example.constellation.core.model.NodeKind
 /**
  * Filter configuration driven by the UI.
  * Empty [packages] means "all packages"; a missing axis in a query means "all values".
+ * [excludedPackages] wins over [packages] — it exists to keep runtime/stdlib noise
+ * (java.*, kotlin.*, …) out of the picture even when externals are shown.
  */
 data class FilterSpec(
     val kinds: Set<NodeCategory> = NodeCategory.entries.toSet(),
     val edgeTypes: Set<EdgeType> = EdgeType.entries.toSet(),
     val packages: List<String> = emptyList(),
+    val excludedPackages: List<String> = emptyList(),
 )
 
 /**
@@ -45,10 +48,12 @@ object GraphFilter {
 
     fun apply(graph: CodeGraph, spec: FilterSpec): CodeGraph {
         val packagesActive = spec.packages.isNotEmpty()
+        val exclusionsActive = spec.excludedPackages.isNotEmpty()
 
         fun nodeOk(n: Node): Boolean =
             n.category in spec.kinds &&
-                (!packagesActive || spec.packages.any { PackageMatcher.matches(it, n.pkg) })
+                (!packagesActive || spec.packages.any { PackageMatcher.matches(it, n.pkg) }) &&
+                (!exclusionsActive || spec.excludedPackages.none { PackageMatcher.matches(it, n.pkg) })
 
         val keptNodes = graph.nodes.filter(::nodeOk)
         val keptIds = keptNodes.asSequence().map { it.id }.toHashSet()

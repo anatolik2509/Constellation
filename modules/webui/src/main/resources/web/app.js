@@ -17,11 +17,23 @@ const EDGE_TYPES = [
   { id: 'IMPLEMENTS', label: 'implements', color: '#008300', width: 2, opacity: 1, dashed: true },
 ];
 const INK_2 = '#c3c2b7';
+const INK_3 = '#898781';
+const HAIRLINE = '#2c2c2a';
+
+/** Runtime/stdlib noise kept out of the graph unless the user opts in. */
+const RUNTIME_PACKAGES = [
+  'java.*', 'javax.*', 'jakarta.*', 'jdk.*', 'sun.*', 'com.sun.*',
+  'kotlin.*', 'kotlinx.*', 'org.jetbrains.annotations',
+  // picked up whenever the analyzed path is a repo root that contains the wrapper jar
+  'org.gradle.wrapper',
+];
 
 const state = {
   kinds: new Set(CATEGORIES.map((c) => c.id).filter((c) => c !== 'EXTERNAL')),
   edgeTypes: new Set(EDGE_TYPES.map((e) => e.id)),
   packages: null, // null = all (no packages filter)
+  hideRuntime: true,
+  groupByPackage: true,
   meta: null,
   graph: null,
   cy: null,
@@ -47,6 +59,7 @@ function buildQuery() {
   if (state.kinds.size !== CATEGORIES.length) params.push(`kinds=${[...state.kinds].join(',')}`);
   if (state.edgeTypes.size !== EDGE_TYPES.length) params.push(`edges=${[...state.edgeTypes].join(',')}`);
   if (state.packages !== null) params.push(`pkgs=${encodeURIComponent([...state.packages].join(','))}`);
+  if (state.hideRuntime) params.push(`xpkgs=${encodeURIComponent(RUNTIME_PACKAGES.join(','))}`);
   return params.length ? `?${params.join('&')}` : '';
 }
 
@@ -118,6 +131,16 @@ function buildFilterPanel() {
     state.layoutNeeded = true;
     if (state.graph) updateElements(state.graph, { randomize: true });
   });
+
+  document.getElementById('hideRuntime').addEventListener('change', (e) => {
+    state.hideRuntime = e.target.checked;
+    scheduleUpdate();
+  });
+  document.getElementById('groupByPackage').addEventListener('change', (e) => {
+    state.groupByPackage = e.target.checked;
+    state.layoutNeeded = true; // compound <-> flat is a structural change
+    if (state.graph) updateElements(state.graph, { randomize: true });
+  });
 }
 
 function updateMetaInfo() {
@@ -152,6 +175,23 @@ const STYLESHEET = [
     'text-wrap': 'ellipsis', 'text-max-width': 90,
     'border-width': 0,
   } },
+  // Package containers: recessive nested boxes, never mistaken for class nodes
+  // (no fill, hairline border, muted top-left label, auto-sized to children).
+  { selector: 'node.package-group', style: {
+    'shape': 'round-rectangle',
+    'background-color': 'rgba(255, 255, 255, 0.02)',
+    'border-color': HAIRLINE,
+    'border-width': 1,
+    'border-opacity': 0.9,
+    'label': 'data(simpleName)',
+    'font-size': 11,
+    'color': INK_3,
+    'text-valign': 'top', 'text-halign': 'left',
+    'text-margin-x': 8, 'text-margin-y': 6,
+    'text-wrap': 'ellipsis', 'text-max-width': 220,
+    'padding': 24,
+    'events': 'no',
+  } },
   ...CATEGORIES.map((c) => ({
     selector: `node[category="${c.id}"]`,
     style: c.dashed
@@ -179,13 +219,41 @@ const STYLESHEET = [
   { selector: 'edge:hover', style: { 'overlay-color': '#ffffff', 'overlay-opacity': 0.08, 'opacity': 1 } },
 ];
 
+const PKG_ID_PREFIX = 'pkg:';
+
+/** Builds cytoscape elements: leaf class nodes plus (optionally) nested package containers. */
 function toElements(graph) {
-  const nodes = graph.nodes.map((n) => ({ group: 'nodes', data: { ...n } }));
+  const packages = new Map(); // pkg name -> element, created lazily with the full ancestor chain
+
+  /** Creates (once) the container for [pkg] and its parents; returns the container id. */
+  function containerFor(pkg) {
+    if (packages.has(pkg)) return packages.get(pkg).data.id;
+    const element = {
+      group: 'nodes',
+      data: {
+        id: PKG_ID_PREFIX + (pkg === '' ? '(default)' : pkg),
+        simpleName: pkg === '' ? '(default package)' : pkg,
+      },
+      classes: ['package-group'],
+      position: { x: 0, y: 0 },
+    };
+    packages.set(pkg, element);
+    const dot = pkg.lastIndexOf('.');
+    if (dot > 0) element.data.parent = containerFor(pkg.substring(0, dot));
+    return element.data.id;
+  }
+
+  const nodes = graph.nodes.map((n) => {
+    const data = { ...n };
+    if (state.groupByPackage) data.parent = containerFor(n.pkg);
+    return { group: 'nodes', data };
+  });
   const edges = graph.edges.map((e, i) => ({
     group: 'edges',
     data: { id: `e${i}`, source: e.from, target: e.to, type: e.type, methods: e.methods || [] },
   }));
-  return [...nodes, ...edges];
+  // Containers must come before their children in the element list.
+  return [...packages.values(), ...nodes, ...edges];
 }
 
 function updateElements(graph, { randomize = false } = {}) {
@@ -236,6 +304,9 @@ function updateElements(graph, { randomize = false } = {}) {
     nodeDimensionsIncludeLabels: true,
     packComponents: true,
   });
+  // fcose's own fit can leave the packed components off-center (especially with
+  // compound containers) — an explicit fit on completion guarantees centering.
+  layout.on('layoutstop', () => cy.fit(undefined, 30));
   layout.run();
 
   document.getElementById('counts').textContent =
@@ -281,6 +352,7 @@ function showNodeDetails(id) {
     <span class="badge">${swatchHtml({ color: CAT_COLOR[node.category], shape: 'round-rectangle' })}
       ${CAT_LABEL[node.category]}${node.pojo ? ' (pojo)' : ''}</span>
     <div class="kv">package: <code>${node.pkg === '' ? '(default)' : escapeHtml(node.pkg)}</code></div>
+    ${node.module ? `<div class="kv">module: <code>${escapeHtml(node.module)}</code></div>` : ''}
     ${node.sourceFile ? `<div class="kv">source: <code>${escapeHtml(node.sourceFile)}</code></div>` : ''}
     <h4>Methods (${node.methods.length})</h4>
     <ul>${node.methods.slice(0, 40).map((m) => `<li><code>${escapeHtml(m.display)}</code></li>`).join('')}

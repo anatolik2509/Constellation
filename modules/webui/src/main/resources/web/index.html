@@ -28,13 +28,23 @@
           <button id="pkgNone" class="mini" type="button">none</button>
         </span>
       </h2>
+      <label class="toggle" title="Exclude java.*, kotlin.* and friends from the graph">
+        <input type="checkbox" id="hideRuntime" checked>
+        <span class="name">Hide runtime packages <span class="hint">(java.*, kotlin.*, …)</span></span>
+      </label>
       <input id="pkgSearch" type="search" placeholder="Filter packages…" autocomplete="off">
       <div id="pkgFilters" class="filters pkg-list"></div>
     </section>
 
     <div class="panel-footer">
-      <button id="relayout" type="button">Relayout</button>
-      <span id="counts" class="counts"></span>
+      <label class="toggle" title="Nest nodes inside package containers">
+        <input type="checkbox" id="groupByPackage" checked>
+        <span class="name">Group by package</span>
+      </label>
+      <div class="panel-footer-row">
+        <button id="relayout" type="button">Relayout</button>
+        <span id="counts" class="counts"></span>
+      </div>
     </div>
   </aside>
 
