@@ -86,7 +86,8 @@ function buildFilterPanel() {
   const pkgEl = document.getElementById('pkgFilters');
   const allPkgs = new Set(state.meta.packages.map((p) => p.name));
   pkgEl.innerHTML = state.meta.packages.map((p) => `
-    <label><input type="checkbox" data-pkg="${escapeAttr(p.name)}" checked>
+    <label title="${escapeAttr(p.name === '' ? '(default package)' : p.name)}">
+      <input type="checkbox" data-pkg="${escapeAttr(p.name)}" checked>
       <span class="name">${p.name === '' ? '<span class="unnamed">(default)</span>' : escapeHtml(p.name)}</span>
       <span class="count">${p.count}</span></label>`).join('');
   pkgEl.addEventListener('change', () => {
@@ -225,7 +226,10 @@ function updateElements(graph, { randomize = false } = {}) {
     numIter: 9000,
     fit: true,
     padding: 30,
-    animate: true,
+    // First paint and explicit relayout: deterministic, no animation (positions
+    // apply synchronously — also keeps headless rendering testable). Animated
+    // morphing only when preserving positions across a refilter.
+    animate: !randomize,
     animationDuration: 700,
     randomize,
     initialEnergyOnIncremental: 0.1,
