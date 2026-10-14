@@ -20,10 +20,45 @@ import java.nio.file.Path
  */
 class BytecodeAnalyzer(private val paths: List<Path>) {
 
+    /** Everything read off the class files in the scanning phase. */
+    private class ScanResult(
+        val analyzed: Map<String, RawClassInfo>,
+        /** Digit-excluded classes, kept only to attribute their call edges to the enclosing class. */
+        val excluded: Map<String, RawClassInfo>,
+        val skippedSynthetic: Int,
+        val duplicatesSkipped: Int,
+        val parseErrors: List<ParseError>,
+    )
+
+    private data class CallKey(val from: String, val to: String)
+
     fun analyze(): CodeGraph {
+        val scan = scanClasses()
+
+        val nodes = sortedMapOf<String, Node>() // internal name -> Node
+        for (info in scan.analyzed.values) nodes[info.name] = toNode(info)
+
+        val (edges, externals) = collectEdges(scan)
+        for (external in externals) nodes[external] = toExternalNode(external)
+
+        return CodeGraph(
+            nodes = nodes.values.sortedBy { it.id },
+            edges = edges,
+            stats = GraphStats(
+                analyzedClasses = scan.analyzed.size,
+                skippedSynthetic = scan.skippedSynthetic,
+                duplicatesSkipped = scan.duplicatesSkipped,
+                parseErrors = scan.parseErrors,
+                sources = paths.map { it.toString() },
+            ),
+        )
+    }
+
+    // ---------- scanning ----------
+
+    private fun scanClasses(): ScanResult {
         val scanner = ClassScanner()
         val analyzed = LinkedHashMap<String, RawClassInfo>()
-        /** Digit-excluded classes, kept only to attribute their call edges to the enclosing class. */
         val excluded = LinkedHashMap<String, RawClassInfo>()
         var skippedSynthetic = 0
         var duplicatesSkipped = 0
@@ -38,131 +73,136 @@ class BytecodeAnalyzer(private val paths: List<Path>) {
             }
             if (info.access and Opcodes.ACC_SYNTHETIC != 0 || isExcludedClassName(info.name)) {
                 skippedSynthetic++
-                if (isExcludedClassName(info.name)) {
-                    excluded[info.name] = info
-                }
+                if (isExcludedClassName(info.name)) excluded[info.name] = info
                 continue
             }
             if (analyzed.putIfAbsent(info.name, info) != null) {
                 duplicatesSkipped++
             }
         }
+        return ScanResult(analyzed, excluded, skippedSynthetic, duplicatesSkipped, parseErrors)
+    }
 
-        val nodes = sortedMapOf<String, Node>() // internal name -> Node
-        for ((name, info) in analyzed) {
-            val kind = when {
-                info.access and Opcodes.ACC_ANNOTATION != 0 -> NodeKind.ANNOTATION
-                info.access and Opcodes.ACC_INTERFACE != 0 -> NodeKind.INTERFACE
-                else -> NodeKind.CLASS
-            }
-            val pojo = kind == NodeKind.CLASS && PojoDetector.isPojo(info)
-            val dot = Names.toDotName(name)
-            nodes[name] = Node(
-                id = dot,
-                kind = kind,
-                pojo = pojo,
-                pkg = Names.pkgOf(dot),
-                simpleName = Names.simpleNameOf(dot),
-                sourceFile = info.sourceFile,
-                declaredMethods = info.methods.asSequence()
-                    .filter { it.access and (Opcodes.ACC_SYNTHETIC or Opcodes.ACC_BRIDGE) == 0 }
-                    .map { MethodRef(it.name, it.descriptor) }
-                    .distinct()
-                    .sortedWith(compareBy({ it.name }, { it.descriptor }))
-                    .toList(),
-            )
+    // ---------- nodes ----------
+
+    private fun toNode(info: RawClassInfo): Node {
+        val kind = kindOf(info.access)
+        val dotName = Names.toDotName(info.name)
+        return Node(
+            id = dotName,
+            kind = kind,
+            pojo = kind == NodeKind.CLASS && PojoDetector.isPojo(info),
+            pkg = Names.pkgOf(dotName),
+            simpleName = Names.simpleNameOf(dotName),
+            sourceFile = info.sourceFile,
+            declaredMethods = info.methods.asSequence()
+                .filter { it.access and (Opcodes.ACC_SYNTHETIC or Opcodes.ACC_BRIDGE) == 0 }
+                .map { MethodRef(it.name, it.descriptor) }
+                .distinct()
+                .sortedWith(compareBy({ it.name }, { it.descriptor }))
+                .toList(),
+        )
+    }
+
+    private fun toExternalNode(internalName: String): Node {
+        val dotName = Names.toDotName(internalName)
+        return Node(
+            id = dotName,
+            kind = NodeKind.EXTERNAL,
+            pkg = Names.pkgOf(dotName),
+            simpleName = Names.simpleNameOf(dotName),
+        )
+    }
+
+    private fun kindOf(access: Int): NodeKind = when {
+        access and Opcodes.ACC_ANNOTATION != 0 -> NodeKind.ANNOTATION
+        access and Opcodes.ACC_INTERFACE != 0 -> NodeKind.INTERFACE
+        else -> NodeKind.CLASS
+    }
+
+    // ---------- edges ----------
+
+    /** Finalized edges (dot names, sorted) plus the referenced-but-missing classes. */
+    private fun collectEdges(scan: ScanResult): Pair<List<Edge>, Set<String>> {
+        val collector = EdgeCollector(scan.analyzed)
+
+        for (info in scan.analyzed.values) {
+            info.superName?.let { collector.addSupertypeEdge(info.name, it) }
+            collector.addTypeDeclarationEdges(info)
+            collector.addCalls(info.name, info)
+        }
+        // Digit-excluded bodies (Kotlin/Java lambdas-as-classes, anonymous objects) emit no
+        // nodes, but their call edges belong to the enclosing class and must not be lost.
+        val owners = resolveOwners(scan.analyzed, scan.excluded)
+        for (info in scan.excluded.values) {
+            val owner = owners[info.name] ?: continue
+            collector.addCalls(owner, info)
+        }
+        return collector.build() to collector.referencedExternals
+    }
+
+    /** Accumulates structural edges, aggregated calls, and referenced external classes. */
+    private class EdgeCollector(private val analyzed: Map<String, RawClassInfo>) {
+
+        private val structuralEdges = mutableListOf<Edge>()
+        private val callMethods = mutableMapOf<CallKey, MutableSet<MethodRef>>()
+        val referencedExternals = sortedSetOf<String>()
+
+        /** Direct inheritance: never from java/lang/Object, never to self. */
+        fun addSupertypeEdge(owner: String, superName: String) {
+            if (superName == OBJECT || superName == owner) return
+            structuralEdges += Edge(owner, superName, EdgeType.INHERITANCE)
+            externalCandidate(superName)
         }
 
-        val referenced = sortedSetOf<String>()
-        fun externalCandidate(internal: String) {
-            if (internal !in analyzed && !isExcludedClassName(internal)) referenced += internal
+        /**
+         * Interface edges from the class-file `interfaces[]` list.
+         * Annotation types implicitly implement java/lang/annotation/Annotation — skipped.
+         * For interfaces, `interfaces[]` holds *extended* interfaces (bytecode keeps
+         * superName = java/lang/Object there); for classes these are implementations.
+         */
+        fun addTypeDeclarationEdges(info: RawClassInfo) {
+            if (info.access and Opcodes.ACC_ANNOTATION != 0) return
+            val edgeType =
+                if (info.access and Opcodes.ACC_INTERFACE != 0) EdgeType.INHERITANCE
+                else EdgeType.IMPLEMENTS
+            for (iface in info.interfaces) {
+                if (iface == info.name) continue
+                structuralEdges += Edge(info.name, iface, edgeType)
+                externalCandidate(iface)
+            }
         }
 
-        data class CallKey(val from: String, val to: String)
-
-        val edges = mutableListOf<Edge>()
-        val callMethods = mutableMapOf<CallKey, MutableSet<MethodRef>>()
-
-        for ((name, info) in analyzed) {
-            val isAnnotation = info.access and Opcodes.ACC_ANNOTATION != 0
-
-            val sup = info.superName
-            if (sup != null && sup != OBJECT && sup != name) {
-                edges += Edge(name, sup, EdgeType.INHERITANCE)
-                externalCandidate(sup)
-            }
-            // Annotation types implicitly implement java/lang/annotation/Annotation — not a real edge.
-            if (!isAnnotation) {
-                // For interfaces, `interfaces[]` holds *extended* interfaces (bytecode keeps
-                // superName = java/lang/Object there); for classes these are implementations.
-                val ifaceEdgeType =
-                    if (info.access and Opcodes.ACC_INTERFACE != 0) EdgeType.INHERITANCE
-                    else EdgeType.IMPLEMENTS
-                for (iface in info.interfaces) {
-                    if (iface == name) continue
-                    edges += Edge(name, iface, ifaceEdgeType)
-                    externalCandidate(iface)
-                }
-            }
+        /** Aggregates method calls of [caller] per target class, self-edges excluded. */
+        fun addCalls(caller: String, info: RawClassInfo) {
             for (call in info.calls) {
-                if (call.owner == name || call.owner.startsWith("[")) continue
+                if (call.owner == caller || call.owner.startsWith("[")) continue
                 if (isExcludedClassName(call.owner)) continue
                 // super(...) duplicates the INHERITANCE edge — drop it.
                 if (call.name == "<init>" && call.owner == info.superName) continue
-                callMethods.getOrPut(CallKey(name, call.owner)) {
-                    sortedSetOf(compareBy({ it.name }, { it.descriptor }))
-                } += MethodRef(call.name, call.descriptor)
+                callMethods.getOrPut(CallKey(caller, call.owner)) { methodSet() } +=
+                    MethodRef(call.name, call.descriptor)
                 externalCandidate(call.owner)
             }
         }
-        // Digit-excluded bodies (Kotlin/Java lambdas-as-classes, anonymous objects) emit no nodes,
-        // but their call edges belong to the enclosing class and must not be lost.
-        val owners = resolveOwners(analyzed, excluded)
-        for ((name, info) in excluded) {
-            val owner = owners[name] ?: continue
-            for (call in info.calls) {
-                if (call.owner == owner || call.owner.startsWith("[")) continue
-                if (isExcludedClassName(call.owner)) continue
-                // The synthetic's own super(...) is not a call of the enclosing class.
-                if (call.name == "<init>" && call.owner == info.superName) continue
-                callMethods.getOrPut(CallKey(owner, call.owner)) {
-                    sortedSetOf(compareBy({ it.name }, { it.descriptor }))
-                } += MethodRef(call.name, call.descriptor)
-                externalCandidate(call.owner)
-            }
-        }
-        for ((key, methods) in callMethods) {
-            edges += Edge(key.from, key.to, EdgeType.CALL, methods.toList())
+
+        fun build(): List<Edge> =
+            (structuralEdges + callEdges()).asSequence()
+                .filter { it.from != it.to }
+                .map { it.copy(from = Names.toDotName(it.from), to = Names.toDotName(it.to)) }
+                .distinct()
+                .sortedWith(compareBy({ it.from }, { it.to }, { it.type }))
+                .toList()
+
+        private fun callEdges(): List<Edge> =
+            callMethods.map { (key, methods) -> Edge(key.from, key.to, EdgeType.CALL, methods.toList()) }
+
+        private fun externalCandidate(internal: String) {
+            if (internal !in analyzed && !isExcludedClassName(internal)) referencedExternals += internal
         }
 
-        for (ext in referenced) {
-            val dot = Names.toDotName(ext)
-            nodes[ext] = Node(
-                id = dot,
-                kind = NodeKind.EXTERNAL,
-                pkg = Names.pkgOf(dot),
-                simpleName = Names.simpleNameOf(dot),
-            )
-        }
-
-        val finalEdges = edges.asSequence()
-            .filter { it.from != it.to }
-            .map { it.copy(from = Names.toDotName(it.from), to = Names.toDotName(it.to)) }
-            .distinct()
-            .sortedWith(compareBy({ it.from }, { it.to }, { it.type }))
-            .toList()
-
-        return CodeGraph(
-            nodes = nodes.values.sortedBy { it.id },
-            edges = finalEdges,
-            stats = GraphStats(
-                analyzedClasses = analyzed.size,
-                skippedSynthetic = skippedSynthetic,
-                duplicatesSkipped = duplicatesSkipped,
-                parseErrors = parseErrors,
-                sources = paths.map { it.toString() },
-            ),
-        )
+        private fun methodSet(): MutableSet<MethodRef> =
+            sortedSetOf(compareBy({ it.name }, { it.descriptor }))
     }
 
     companion object {

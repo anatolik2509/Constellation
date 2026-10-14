@@ -36,6 +36,11 @@ internal class RawClassInfo(
 /** Single-class ASM extraction. Only SKIP_FRAMES: SKIP_DEBUG would drop visitSource, SKIP_CODE the calls. */
 internal class ClassScanner {
 
+    private companion object {
+        const val LAMBDA_METAFACTORY = "java/lang/invoke/LambdaMetafactory"
+    }
+
+
     fun scan(bytes: ByteArray): RawClassInfo {
         val visitor = ScannerVisitor()
         ClassReader(bytes).accept(visitor, ClassReader.SKIP_FRAMES)
@@ -156,14 +161,10 @@ internal class ClassScanner {
                     vararg bootstrapMethodArguments: Any?,
                 ) {
                     // Lambdas / method references: the implementation method handle is the real call target.
-                    if (bootstrapMethodHandle?.owner == "java/lang/invoke/LambdaMetafactory") {
-                        for (arg in bootstrapMethodArguments) {
-                            if (arg is Handle && isMethodHandle(arg)) {
-                                if (!arg.owner.startsWith("[")) {
-                                    calls += RawCall(arg.owner, arg.name, arg.desc)
-                                }
-                            }
-                        }
+                    if (bootstrapMethodHandle?.owner != LAMBDA_METAFACTORY) return
+                    for (arg in bootstrapMethodArguments) {
+                        if (arg !is Handle || !isMethodHandle(arg) || arg.owner.startsWith("[")) continue
+                        calls += RawCall(arg.owner, arg.name, arg.desc)
                     }
                 }
             }

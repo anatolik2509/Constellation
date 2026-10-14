@@ -36,29 +36,36 @@ object Descriptors {
         return base + "[]".repeat(depth)
     }
 
+    /** One parsed type: its descriptor text and the index just past it. */
+    private data class ParsedType(val descriptor: String, val endIndex: Int)
+
     /** Splits the parameter part of a descriptor into single type descriptors. */
-    private fun parseTypes(s: String): List<String> {
-        val out = mutableListOf<String>()
-        var i = 0
-        while (i < s.length) {
-            val c = s[i]
-            if (c == '[') {
-                var j = i
-                while (j < s.length && s[j] == '[') j++
-                val end = if (j < s.length && s[j] == 'L') s.indexOf(';', j) else j
-                if (end < 0 || end + 1 > s.length) break
-                out.add(s.substring(i, end + 1))
-                i = end + 1
-            } else if (c == 'L') {
-                val end = s.indexOf(';', i)
-                if (end < 0) break
-                out.add(s.substring(i, end + 1))
-                i = end + 1
-            } else {
-                out.add(s.substring(i, i + 1))
-                i++
-            }
+    private fun parseTypes(params: String): List<String> {
+        val types = mutableListOf<String>()
+        var index = 0
+        while (index < params.length) {
+            val parsed = parseTypeStartingAt(params, index) ?: break // malformed tail
+            types += parsed.descriptor
+            index = parsed.endIndex
         }
-        return out
+        return types
+    }
+
+    /**
+     * Reads one type descriptor starting at [index]:
+     * `[`-prefixes (arrays) followed by either `L…;` (object) or a single primitive char.
+     * Returns null if the input is malformed.
+     */
+    private fun parseTypeStartingAt(params: String, index: Int): ParsedType? {
+        var typeStart = index
+        while (typeStart < params.length && params[typeStart] == '[') typeStart++
+        if (typeStart >= params.length) return null
+
+        if (params[typeStart] == 'L') {
+            val semicolon = params.indexOf(';', typeStart)
+            if (semicolon < 0) return null
+            return ParsedType(params.substring(index, semicolon + 1), semicolon + 1)
+        }
+        return ParsedType(params.substring(index, typeStart + 1), typeStart + 1)
     }
 }
