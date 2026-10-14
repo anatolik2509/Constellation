@@ -8,9 +8,14 @@ import java.net.InetSocketAddress
 import java.net.URI
 import java.util.concurrent.Executors
 
-/** Serves the static page and the graph JSON API on the loopback interface. */
+/**
+ * Serves the static page and the graph JSON API on the loopback interface.
+ * Port 0 (the default) picks a free ephemeral port — the actual URI is returned by [start].
+ */
 class ConstellationServer(private val graph: CodeGraph, port: Int = 0) {
 
+    // Explicit 127.0.0.1: the hostname may resolve to a non-loopback address
+    // (IPv6, VPN), which would silently break the advertised 127.0.0.1 URI.
     private val server: HttpServer = HttpServer.create(InetSocketAddress("127.0.0.1", port), 0)
     private val executor = Executors.newFixedThreadPool(4)
 
