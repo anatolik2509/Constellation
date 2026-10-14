@@ -1,4 +1,4 @@
-package org.example.constellation.ui.server
+package org.example.constellation.webui.server
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer

@@ -1,3 +1,3 @@
 rootProject.name = "Constellation"
 
-include("core", "ui")
+include("core", "webui")

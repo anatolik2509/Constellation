@@ -1,4 +1,4 @@
-package org.example.constellation.ui.server
+package org.example.constellation.webui.server
 
 import org.example.constellation.core.model.CodeGraph
 import org.example.constellation.core.model.Edge

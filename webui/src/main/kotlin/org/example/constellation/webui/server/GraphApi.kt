@@ -1,11 +1,11 @@
-package org.example.constellation.ui.server
+package org.example.constellation.webui.server
 
 import org.example.constellation.core.filter.FilterSpec
 import org.example.constellation.core.model.CodeGraph
 import org.example.constellation.core.model.EdgeType
 import org.example.constellation.core.model.NodeCategory
 import org.example.constellation.core.util.Descriptors
-import org.example.constellation.ui.json.JsonWriter
+import org.example.constellation.webui.json.JsonWriter
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 

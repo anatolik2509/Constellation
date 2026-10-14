@@ -1,7 +1,7 @@
-package org.example.constellation.ui
+package org.example.constellation.webui
 
 import org.example.constellation.core.analyze.BytecodeAnalyzer
-import org.example.constellation.ui.server.ConstellationServer
+import org.example.constellation.webui.server.ConstellationServer
 import java.awt.Desktop
 import java.nio.file.Files
 import java.nio.file.Path

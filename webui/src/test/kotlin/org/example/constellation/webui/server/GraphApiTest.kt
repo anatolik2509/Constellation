@@ -1,4 +1,4 @@
-package org.example.constellation.ui.server
+package org.example.constellation.webui.server
 
 import org.example.constellation.core.model.CodeGraph
 import org.example.constellation.core.model.Edge
@@ -10,7 +10,7 @@ import org.example.constellation.core.model.NodeCategory
 import org.example.constellation.core.model.NodeKind
 import org.example.constellation.core.model.ParseError
 import org.example.constellation.core.filter.FilterSpec
-import org.example.constellation.ui.json.JsonWriter
+import org.example.constellation.webui.json.JsonWriter
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue

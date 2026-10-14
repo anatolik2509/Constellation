@@ -1,4 +1,4 @@
-package org.example.constellation.ui.json
+package org.example.constellation.webui.json
 
 /**
  * Minimal JSON writer. The graph payload is plain structural data, so a hand-rolled

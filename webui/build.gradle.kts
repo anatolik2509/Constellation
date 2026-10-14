@@ -20,7 +20,7 @@ kotlin {
 }
 
 application {
-    mainClass = "org.example.constellation.ui.MainKt"
+    mainClass = "org.example.constellation.webui.MainKt"
 }
 
 tasks.test {
