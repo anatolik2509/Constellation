@@ -11,7 +11,12 @@ object FixtureCompiler {
     class Result(val srcDir: Path, val outDir: Path)
 
     /** [outRelative] controls the output layout — e.g. `mymodule/build/classes` for module-detection tests. */
-    fun compile(base: Path, sources: Map<String, String>, outRelative: String = "out"): Result {
+    fun compile(
+        base: Path,
+        sources: Map<String, String>,
+        outRelative: String = "out",
+        classpath: List<Path> = emptyList(),
+    ): Result {
         val compiler = ToolProvider.getSystemJavaCompiler()
             ?: error("system Java compiler unavailable")
         val srcDir = base.resolve("src")
@@ -22,11 +27,11 @@ object FixtureCompiler {
             f.writeText(text)
             f
         }
-        val rc = compiler.run(
-            null, null, null,
-            "--release", "17", "-d", outDir.toString(),
-            *files.map { it.toString() }.toTypedArray(),
-        )
+        val args = mutableListOf("--release", "17", "-d", outDir.toString())
+        if (classpath.isNotEmpty()) {
+            args += listOf("-classpath", classpath.joinToString(":") { it.toString() })
+        }
+        val rc = compiler.run(null, null, null, *(args + files.map { it.toString() }).toTypedArray())
         require(rc == 0) { "javac failed with rc=$rc" }
         return Result(srcDir, outDir)
     }

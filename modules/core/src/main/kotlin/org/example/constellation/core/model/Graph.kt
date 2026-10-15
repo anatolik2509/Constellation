@@ -6,8 +6,9 @@ enum class NodeKind { CLASS, INTERFACE, ANNOTATION, EXTERNAL }
 /**
  * Effective category used for filtering and coloring.
  * POJO is a refinement of CLASS: a class detected as POJO has category POJO, not CLASS.
+ * TEST wins over POJO: a test class is noise to filter out first of all.
  */
-enum class NodeCategory { CLASS, POJO, INTERFACE, ANNOTATION, EXTERNAL }
+enum class NodeCategory { CLASS, POJO, INTERFACE, ANNOTATION, EXTERNAL, TEST }
 
 enum class EdgeType { CALL, INHERITANCE, IMPLEMENTS }
 
@@ -28,12 +29,15 @@ data class Node(
     val sourceFile: String? = null,
     /** Best-effort module name derived from the class file's origin; null for externals/unknown. */
     val module: String? = null,
+    /** Compiled test sources (`build/classes/<lang>/test`, `target/test-classes`); false for externals. */
+    val test: Boolean = false,
     /** Declared non-synthetic methods, sorted; empty for externals. */
     val declaredMethods: List<MethodRef> = emptyList(),
 ) {
     val category: NodeCategory
         get() = when {
             kind == NodeKind.EXTERNAL -> NodeCategory.EXTERNAL
+            test -> NodeCategory.TEST
             pojo -> NodeCategory.POJO
             kind == NodeKind.CLASS -> NodeCategory.CLASS
             kind == NodeKind.INTERFACE -> NodeCategory.INTERFACE

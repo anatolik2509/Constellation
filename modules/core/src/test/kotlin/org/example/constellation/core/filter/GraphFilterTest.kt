@@ -112,6 +112,25 @@ class GraphFilterTest {
     }
 
     @Test
+    fun `test category wins over pojo and is filterable`() {
+        val testNode = Node("app.FooTest", NodeKind.CLASS, pojo = true, pkg = "app", simpleName = "FooTest", test = true)
+        assertEquals(NodeCategory.TEST, testNode.category)
+
+        val plain = Node(id = "app.Service", kind = NodeKind.CLASS, pkg = "app", simpleName = "Service")
+        val g = CodeGraph(
+            listOf(testNode, plain),
+            emptyList(),
+            org.example.constellation.core.model.GraphStats(2, 0, 0, emptyList(), emptyList()),
+        )
+        val withoutTests = GraphFilter.apply(
+            g,
+            FilterSpec(kinds = NodeCategory.entries.filter { it != NodeCategory.TEST }.toSet()),
+        )
+        assertTrue(withoutTests.nodes.none { it.id == "app.FooTest" })
+        assertTrue(withoutTests.nodes.any { it.id == "app.Service" })
+    }
+
+    @Test
     fun `excluded packages drop matching nodes whatever else is selected`() {
         val out = GraphFilter.apply(
             graph(),

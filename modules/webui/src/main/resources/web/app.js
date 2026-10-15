@@ -10,6 +10,7 @@ const CATEGORIES = [
   { id: 'INTERFACE', label: 'Interface', color: '#199e70', shape: 'diamond' },
   { id: 'ANNOTATION', label: 'Annotation', color: '#c98500', shape: 'hexagon' },
   { id: 'EXTERNAL', label: 'External', color: '#d55181', shape: 'ellipse', dashed: true },
+  { id: 'TEST', label: 'Test', color: '#008300', shape: 'rectangle' },
 ];
 const EDGE_TYPES = [
   { id: 'CALL', label: 'calls', color: '#9085e9', width: 1.5, opacity: 0.6, dashed: false },
@@ -29,7 +30,7 @@ const RUNTIME_PACKAGES = [
 ];
 
 const state = {
-  kinds: new Set(CATEGORIES.map((c) => c.id).filter((c) => c !== 'EXTERNAL')),
+  kinds: new Set(CATEGORIES.map((c) => c.id).filter((c) => c !== 'EXTERNAL' && c !== 'TEST')),
   edgeTypes: new Set(EDGE_TYPES.map((e) => e.id)),
   packages: null, // null = all (no packages filter)
   hideRuntime: true,
@@ -177,6 +178,9 @@ const STYLESHEET = [
   } },
   // Package containers: recessive nested boxes, never mistaken for class nodes
   // (no fill, hairline border, muted top-left label, auto-sized to children).
+  // The label is the package's last segment — the nesting spells the full name,
+  // and short labels fit even small containers; a surface-colored background
+  // keeps the label readable where it does extend past the box.
   { selector: 'node.package-group', style: {
     'shape': 'round-rectangle',
     'background-color': 'rgba(255, 255, 255, 0.02)',
@@ -188,7 +192,10 @@ const STYLESHEET = [
     'color': INK_3,
     'text-valign': 'top', 'text-halign': 'left',
     'text-margin-x': 8, 'text-margin-y': 6,
-    'text-wrap': 'ellipsis', 'text-max-width': 220,
+    'text-wrap': 'ellipsis', 'text-max-width': 140,
+    'text-background-color': '#12131a',
+    'text-background-opacity': 0.9,
+    'text-background-padding': 2,
     'padding': 24,
     'events': 'no',
   } },
@@ -232,7 +239,7 @@ function toElements(graph) {
       group: 'nodes',
       data: {
         id: PKG_ID_PREFIX + (pkg === '' ? '(default)' : pkg),
-        simpleName: pkg === '' ? '(default package)' : pkg,
+        simpleName: pkg === '' ? '(default package)' : pkg.substring(pkg.lastIndexOf('.') + 1),
       },
       classes: ['package-group'],
       position: { x: 0, y: 0 },

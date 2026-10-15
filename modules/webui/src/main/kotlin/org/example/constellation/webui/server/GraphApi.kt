@@ -108,6 +108,7 @@ object GraphJson {
         put("kind", n.kind.name)
         put("category", n.category.name)
         put("pojo", n.pojo)
+        put("test", n.test)
         put("pkg", n.pkg)
         put("simpleName", n.simpleName)
         n.sourceFile?.let { put("sourceFile", it) }
