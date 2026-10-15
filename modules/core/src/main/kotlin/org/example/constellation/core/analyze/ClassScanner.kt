@@ -7,44 +7,17 @@ import org.objectweb.asm.Handle
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 
-internal class RawMethod(val name: String, val descriptor: String, val access: Int)
-
-internal class RawCall(val owner: String, val name: String, val descriptor: String)
-
-/** EnclosingMethod attribute: [owner] class plus the method the class is declared in, if any. */
-internal class RawEnclosing(val owner: String, val name: String?, val descriptor: String?)
-
-internal class RawClassInfo(
-    val name: String,
-    val access: Int,
-    val superName: String?,
-    val interfaces: List<String>,
-    /** Non-static, non-synthetic instance field names. */
-    val instanceFields: List<String>,
-    val recordComponents: List<String>,
-    val methods: List<RawMethod>,
-    val calls: List<RawCall>,
-    val sourceFile: String?,
-    /** EnclosingMethod attribute — the natural owner of anonymous/local/synthetic bodies. */
-    val enclosingMethod: RawEnclosing? = null,
-    /** NestHost attribute. */
-    val nestHost: String? = null,
-    /** This class's own InnerClasses entry: declared outer class (null when anonymous/local). */
-    val innerOuterName: String? = null,
-)
-
 /** Single-class ASM extraction. Only SKIP_FRAMES: SKIP_DEBUG would drop visitSource, SKIP_CODE the calls. */
 internal class ClassScanner {
-
-    private companion object {
-        const val LAMBDA_METAFACTORY = "java/lang/invoke/LambdaMetafactory"
-    }
-
 
     fun scan(bytes: ByteArray): RawClassInfo {
         val visitor = ScannerVisitor()
         ClassReader(bytes).accept(visitor, ClassReader.SKIP_FRAMES)
         return visitor.build()
+    }
+
+    private companion object {
+        const val LAMBDA_METAFACTORY = "java/lang/invoke/LambdaMetafactory"
     }
 
     private class ScannerVisitor : ClassVisitor(Opcodes.ASM9) {

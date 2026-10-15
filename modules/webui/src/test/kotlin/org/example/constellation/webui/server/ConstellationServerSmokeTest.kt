@@ -1,12 +1,12 @@
 package org.example.constellation.webui.server
 
+import org.example.constellation.core.model.ClassKind
+import org.example.constellation.core.model.ClassOrigin
 import org.example.constellation.core.model.CodeGraph
 import org.example.constellation.core.model.Edge
-import org.example.constellation.core.model.EdgeType
 import org.example.constellation.core.model.GraphStats
 import org.example.constellation.core.model.Node
-import org.example.constellation.core.model.NodeCategory
-import org.example.constellation.core.model.NodeKind
+import org.example.constellation.core.model.Relation
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -19,11 +19,18 @@ class ConstellationServerSmokeTest {
 
     private val graph: CodeGraph = CodeGraph(
         nodes = listOf(
-            Node("demo.Foo", NodeKind.CLASS, pkg = "demo", simpleName = "Foo"),
-            Node("demo.Bar", NodeKind.CLASS, pkg = "demo", simpleName = "Bar"),
+            node("demo.Foo", ClassOrigin.Project("app", "main")),
+            node("demo.Bar", ClassOrigin.Project("app", "main")),
+            node("demo.BarTest", ClassOrigin.Project("app", "test")),
         ),
-        edges = listOf(Edge("demo.Foo", "demo.Bar", EdgeType.CALL)),
-        stats = GraphStats(2, 0, 0, emptyList(), emptyList()),
+        edges = listOf(Edge("demo.Foo", "demo.Bar", Relation.CALLS)),
+        stats = GraphStats(3, 0, 0, emptyList(), emptyList()),
+    )
+
+    private fun node(id: String, origin: ClassOrigin) = Node(
+        id = id, kind = ClassKind.CLASS, origin = origin,
+        pkg = id.substringBeforeLast('.', ""), simpleName = id.substringAfterLast('.'),
+        sourceFile = null, declaredMethods = emptyList(), properties = emptyList(),
     )
 
     @Test
@@ -50,9 +57,13 @@ class ConstellationServerSmokeTest {
                 assertEquals(200, filtered.statusCode())
                 assertTrue(filtered.body().contains("demo.Bar"))
 
+                val noTests = get("/api/graph?kinds=CLASS,INTERFACE,ANNOTATION,DATA,EXTERNAL")
+                assertEquals(200, noTests.statusCode())
+                assertTrue(!noTests.body().contains("demo.BarTest"))
+
                 val meta = get("/api/meta")
                 assertEquals(200, meta.statusCode())
-                assertTrue(meta.body().contains("\"CALL\":1"))
+                assertTrue(meta.body().contains("\"CALLS\":1"))
 
                 val bad = get("/api/graph?kinds=BOGUS")
                 assertEquals(400, bad.statusCode())

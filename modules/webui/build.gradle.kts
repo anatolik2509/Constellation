@@ -21,7 +21,8 @@ kotlin {
 }
 
 application {
-    mainClass = "org.example.constellation.webui.MainKt"
+    // Dev-only dogfood entry; the supported entry point is the Gradle plugin (modules/gradle-plugin).
+    mainClass = "org.example.constellation.webui.DevMainKt"
 }
 
 tasks.test {

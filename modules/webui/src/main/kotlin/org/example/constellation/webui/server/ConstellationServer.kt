@@ -2,8 +2,8 @@ package org.example.constellation.webui.server
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
-import org.example.constellation.core.filter.GraphFilter
 import org.example.constellation.core.model.CodeGraph
+import org.example.constellation.core.query.filter
 import java.net.InetSocketAddress
 import java.net.URI
 import java.util.concurrent.Executors
@@ -51,8 +51,8 @@ class ConstellationServer(private val graph: CodeGraph, port: Int = DEFAULT_PORT
     }
 
     private fun handleGraph(exchange: HttpExchange) {
-        val spec = GraphQuery.parse(exchange.requestURI.rawQuery)
-        val filtered = GraphFilter.apply(graph, spec)
+        val (nodes, edges) = GraphQuery.parse(exchange.requestURI.rawQuery)
+        val filtered = graph.filter(nodes, edges)
         respond(exchange, 200, "application/json", GraphJson.graph(filtered))
     }
 

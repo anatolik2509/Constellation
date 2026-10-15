@@ -9,12 +9,13 @@
   --border: rgba(255, 255, 255, 0.10);
 
   --c-class: #3987e5;
-  --c-pojo: #d95926;
+  --c-data: #d95926;
   --c-interface: #199e70;
   --c-annotation: #c98500;
   --c-external: #d55181;
-  --e-call: #9085e9;
-  --e-inheritance: #e66767;
+  --c-test: #008300;
+  --e-calls: #9085e9;
+  --e-extends: #e66767;
   --e-implements: #008300;
 }
 

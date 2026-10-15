@@ -6,15 +6,15 @@
 
 const CATEGORIES = [
   { id: 'CLASS', label: 'Class', color: '#3987e5', shape: 'ellipse' },
-  { id: 'POJO', label: 'POJO', color: '#d95926', shape: 'round-rectangle' },
+  { id: 'DATA', label: 'Data model', color: '#d95926', shape: 'round-rectangle' },
   { id: 'INTERFACE', label: 'Interface', color: '#199e70', shape: 'diamond' },
   { id: 'ANNOTATION', label: 'Annotation', color: '#c98500', shape: 'hexagon' },
   { id: 'EXTERNAL', label: 'External', color: '#d55181', shape: 'ellipse', dashed: true },
   { id: 'TEST', label: 'Test', color: '#008300', shape: 'rectangle' },
 ];
 const EDGE_TYPES = [
-  { id: 'CALL', label: 'calls', color: '#9085e9', width: 1.5, opacity: 0.6, dashed: false },
-  { id: 'INHERITANCE', label: 'extends', color: '#e66767', width: 2, opacity: 1, dashed: false },
+  { id: 'CALLS', label: 'calls', color: '#9085e9', width: 1.5, opacity: 0.6, dashed: false },
+  { id: 'EXTENDS', label: 'extends', color: '#e66767', width: 2, opacity: 1, dashed: false },
   { id: 'IMPLEMENTS', label: 'implements', color: '#008300', width: 2, opacity: 1, dashed: true },
 ];
 const INK_2 = '#c3c2b7';
@@ -59,7 +59,11 @@ function buildQuery() {
   const params = [];
   if (state.kinds.size !== CATEGORIES.length) params.push(`kinds=${[...state.kinds].join(',')}`);
   if (state.edgeTypes.size !== EDGE_TYPES.length) params.push(`edges=${[...state.edgeTypes].join(',')}`);
-  if (state.packages !== null) params.push(`pkgs=${encodeURIComponent([...state.packages].join(','))}`);
+  // The default package travels as the sentinel "(default)" — an empty token would be dropped.
+  if (state.packages !== null) {
+    const pkgs = [...state.packages].map((p) => (p === '' ? '(default)' : p));
+    params.push(`pkgs=${encodeURIComponent(pkgs.join(','))}`);
+  }
   if (state.hideRuntime) params.push(`xpkgs=${encodeURIComponent(RUNTIME_PACKAGES.join(','))}`);
   return params.length ? `?${params.join('&')}` : '';
 }
@@ -87,7 +91,7 @@ function buildFilterPanel() {
   const edgesEl = document.getElementById('edgeFilters');
   edgesEl.innerHTML = EDGE_TYPES.map((t) => `
     <label><input type="checkbox" data-edge="${t.id}" ${state.edgeTypes.has(t.id) ? 'checked' : ''}>
-      <span class="line-sample ${t.dashed ? 'dashed' : ''} ${t.id === 'CALL' ? 'thin' : ''}" style="--sw:${t.color}"></span>
+      <span class="line-sample ${t.dashed ? 'dashed' : ''} ${t.id === 'CALLS' ? 'thin' : ''}" style="--sw:${t.color}"></span>
       <span class="name">${t.label}</span>
       <span class="count" data-count="edge-${t.id}"></span></label>`).join('');
   edgesEl.addEventListener('change', (e) => {
@@ -337,6 +341,32 @@ const TYPE_LABEL = Object.fromEntries(EDGE_TYPES.map((t) => [t.id, t.label]));
 const CAT_LABEL = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.label]));
 const CAT_COLOR = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.color]));
 
+const CARRIER_LABEL = {
+  JAVA_BEAN: 'java bean',
+  KOTLIN_DATA_CLASS: 'kotlin data class',
+  JAVA_RECORD: 'record',
+  ENUM: 'enum',
+};
+
+/** Provider properties rendered generically; known payloads get nicer labels. */
+function propsBadge(node) {
+  if (!node.props || node.props.length === 0) return '';
+  return node.props.map((p) => {
+    if (p.id === 'constellation.data-model') {
+      return ` · ${CARRIER_LABEL[p.carrier] || p.carrier}`;
+    }
+    return ` · ${p.id}`;
+  }).join('');
+}
+
+function originLines(node) {
+  const o = node.origin;
+  if (!o || o.type !== 'project') return '';
+  return `<div class="kv">module: <code>${escapeHtml(o.module)}</code>` +
+    ` · source set: <code>${escapeHtml(o.sourceSet)}</code></div>`;
+}
+
+
 function showNodeDetails(id) {
   const node = state.graph.nodes.find((n) => n.id === id);
   const sb = document.getElementById('sidebar');
@@ -350,16 +380,16 @@ function showNodeDetails(id) {
       <div class="edge-head"><span class="dir">${dir === 'out' ? '→' : '←'}</span>
         <span class="other">${escapeHtml(dir === 'out' ? e.to : e.from)}</span>
         <span class="dir">${TYPE_LABEL[e.type]}</span></div>
-      ${e.type === 'CALL' && e.methods.length ? `<div class="methods">${e.methods.map((m) => escapeHtml(m.display)).join(', ')}</div>` : ''}
+      ${e.type === 'CALLS' && e.methods.length ? `<div class="methods">${e.methods.map((m) => escapeHtml(m.display)).join(', ')}</div>` : ''}
     </div>`).join('');
 
   sb.innerHTML = `
     <button class="close" title="Close">✕</button>
     <h3>${escapeHtml(node.id)}</h3>
     <span class="badge">${swatchHtml({ color: CAT_COLOR[node.category], shape: 'round-rectangle' })}
-      ${CAT_LABEL[node.category]}${node.pojo ? ' (pojo)' : ''}</span>
+      ${CAT_LABEL[node.category]}${propsBadge(node)}</span>
     <div class="kv">package: <code>${node.pkg === '' ? '(default)' : escapeHtml(node.pkg)}</code></div>
-    ${node.module ? `<div class="kv">module: <code>${escapeHtml(node.module)}</code></div>` : ''}
+    ${originLines(node)}
     ${node.sourceFile ? `<div class="kv">source: <code>${escapeHtml(node.sourceFile)}</code></div>` : ''}
     <h4>Methods (${node.methods.length})</h4>
     <ul>${node.methods.slice(0, 40).map((m) => `<li><code>${escapeHtml(m.display)}</code></li>`).join('')}
