@@ -35,7 +35,8 @@ class ConstellationServerSmokeTest {
 
     @Test
     fun `serves page, api and filters, and rejects bad queries`() {
-        val server = ConstellationServer(graph)
+        // Ephemeral port: the default 8080 may be taken by anything on the machine.
+        val server = ConstellationServer(graph, 0)
         val uri = server.start()
         try {
             HttpClient.newHttpClient().use { client ->

@@ -35,6 +35,7 @@ const state = {
   packages: null, // null = all (no packages filter)
   hideRuntime: true,
   groupByPackage: true,
+  collapsed: new Set(), // collapsed package names (view-level, survives refilters)
   meta: null,
   graph: null,
   cy: null,
@@ -201,7 +202,28 @@ const STYLESHEET = [
     'text-background-opacity': 0.9,
     'text-background-padding': 2,
     'padding': 24,
-    'events': 'no',
+  } },
+  // Collapsed package: one enlarged square of its own color — unmistakably
+  // not a class node; tap to expand. (Palette slot 7, validated adjacent to
+  // the six category colors; size + label carry identity too.)
+  { selector: 'node.collapsed-package', style: {
+    'shape': 'rectangle',
+    'background-color': '#9085e9',
+    'border-color': '#12131a',
+    'border-width': 2,
+    'width': 40, 'height': 40,
+    'label': 'data(simpleName)',
+    'font-size': 11,
+    'color': INK_2,
+    'text-valign': 'bottom', 'text-margin-y': 8,
+    'text-wrap': 'ellipsis', 'text-max-width': 130,
+  } },
+  // Collapsed-view aggregate: "some class in P depends on some class in Q".
+  { selector: 'edge[type="DEPENDS"]', style: {
+    'line-color': '#898781',
+    'width': 2,
+    'opacity': 0.85,
+    'line-style': 'solid',
   } },
   ...CATEGORIES.map((c) => ({
     selector: `node[category="${c.id}"]`,
@@ -227,22 +249,56 @@ const STYLESHEET = [
   })),
   { selector: 'node:selected', style: { 'border-width': 3, 'border-color': '#ffffff', 'border-opacity': 0.9 } },
   { selector: 'node:hover', style: { 'overlay-color': '#ffffff', 'overlay-opacity': 0.10 } },
+  { selector: 'node.package-group:hover', style: { 'overlay-opacity': 0 } },
   { selector: 'edge:hover', style: { 'overlay-color': '#ffffff', 'overlay-opacity': 0.08, 'opacity': 1 } },
 ];
 
 const PKG_ID_PREFIX = 'pkg:';
+const DEFAULT_PKG_KEY = '(default)';
 
-/** Builds cytoscape elements: leaf class nodes plus (optionally) nested package containers. */
+function pkgKey(pkg) { return pkg === '' ? DEFAULT_PKG_KEY : pkg; }
+
+/**
+ * The OUTERMOST collapsed package on the chain from [pkg] up, or null.
+ * Outer swallows inner: with both A and A.B collapsed, classes of A.B
+ * resolve to A's node — no stray nested-collapsed nodes outside it.
+ */
+function collapsedAncestorOf(pkg) {
+  if (!state.groupByPackage) return null;
+  let current = pkg;
+  let outermost = null;
+  while (true) {
+    if (state.collapsed.has(current)) outermost = current;
+    const dot = current.lastIndexOf('.');
+    if (dot <= 0) return outermost;
+    current = current.substring(0, dot);
+  }
+}
+
+/**
+ * Builds cytoscape elements: leaf class nodes plus (optionally) nested package
+ * containers. Collapsed packages become single nodes, and every edge touching
+ * their classes aggregates into one "depends" edge between the surviving nodes.
+ */
 function toElements(graph) {
-  const packages = new Map(); // pkg name -> element, created lazily with the full ancestor chain
+  const packages = new Map(); // pkg name -> container element, created lazily with ancestors
+  const collapsedNodes = new Map(); // pkg name -> collapsed-node element
+  const visibleClasses = graph.nodes.filter((n) => collapsedAncestorOf(n.pkg) === null);
 
-  /** Creates (once) the container for [pkg] and its parents; returns the container id. */
+  /** Classes directly under [pkg] or any of its subpackages. */
+  const classCountUnder = (pkg) => {
+    const prefix = pkg === '' ? '' : pkg + '.';
+    return graph.nodes.filter((n) => n.pkg === pkg || n.pkg.startsWith(prefix)).length;
+  };
+
+  /** Creates (once) the container for [pkg]; recursion builds the ancestor chain. */
   function containerFor(pkg) {
     if (packages.has(pkg)) return packages.get(pkg).data.id;
     const element = {
       group: 'nodes',
       data: {
-        id: PKG_ID_PREFIX + (pkg === '' ? '(default)' : pkg),
+        id: PKG_ID_PREFIX + pkgKey(pkg),
+        pkg: pkg,
         simpleName: pkg === '' ? '(default package)' : pkg.substring(pkg.lastIndexOf('.') + 1),
       },
       classes: ['package-group'],
@@ -250,21 +306,117 @@ function toElements(graph) {
     };
     packages.set(pkg, element);
     const dot = pkg.lastIndexOf('.');
-    if (dot > 0) element.data.parent = containerFor(pkg.substring(0, dot));
+    if (dot > 0) {
+      element.data.parent = containerFor(pkg.substring(0, dot));
+    }
     return element.data.id;
   }
 
-  const nodes = graph.nodes.map((n) => {
+  function collapsedNodeFor(pkg) {
+    if (collapsedNodes.has(pkg)) return collapsedNodes.get(pkg).data.id;
+    const count = classCountUnder(pkg);
+    const element = {
+      group: 'nodes',
+      data: {
+        id: PKG_ID_PREFIX + pkgKey(pkg),
+        pkg: pkg,
+        simpleName: `${pkg === '' ? '(default)' : pkg.substring(pkg.lastIndexOf('.') + 1)} (${count})`,
+      },
+      classes: ['collapsed-package'],
+      position: { x: 0, y: 0 },
+    };
+    collapsedNodes.set(pkg, element);
+    const dot = pkg.lastIndexOf('.');
+    if (dot > 0 && collapsedAncestorOf(pkg.substring(0, dot)) === null) {
+      // A collapsed subpackage sits inside its (expanded) parent container.
+      element.data.parent = containerFor(pkg.substring(0, dot));
+    }
+    return element.data.id;
+  }
+
+  const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
+
+  function resolveEndpoint(id) {
+    const node = nodeById.get(id);
+    if (!node) return id; // already a collapsed-package id from a previous pass
+    const collapsed = collapsedAncestorOf(node.pkg);
+    return collapsed === null ? id : collapsedNodeFor(collapsed);
+  }
+
+  const nodes = visibleClasses.map((n) => {
     const data = { ...n };
     if (state.groupByPackage) data.parent = containerFor(n.pkg);
     return { group: 'nodes', data };
   });
-  const edges = graph.edges.map((e, i) => ({
-    group: 'edges',
-    data: { id: `e${i}`, source: e.from, target: e.to, type: e.type, methods: e.methods || [] },
-  }));
+
+  const edges = [];
+  const seenPairs = new Set();
+  for (const e of graph.edges) {
+    const source = resolveEndpoint(e.from);
+    const target = resolveEndpoint(e.to);
+    if (source === target) continue; // internal to a collapsed package
+    const collapsedEdge = source.startsWith(PKG_ID_PREFIX) || target.startsWith(PKG_ID_PREFIX);
+    if (!collapsedEdge) {
+      edges.push({ group: 'edges', data: { id: `e${edges.length}`, source, target, type: e.type, methods: e.methods || [] } });
+      continue;
+    }
+    const key = `${source}->${target}`;
+    if (seenPairs.has(key)) continue;
+    seenPairs.add(key);
+    edges.push({ group: 'edges', data: { id: `e${edges.length}`, source, target, type: 'DEPENDS', methods: [] } });
+  }
+
   // Containers must come before their children in the element list.
-  return [...packages.values(), ...nodes, ...edges];
+  return [...packages.values(), ...collapsedNodes.values(), ...nodes, ...edges];
+}
+
+/**
+ * Force-directed layouts give no hard guarantee that sibling containers (or
+ * top-level collapsed nodes) stay apart, so nudge them apart deterministically:
+ * within every sibling group, push intersecting/too-close boxes along the
+ * smaller overlap axis until nothing intersects (bounded iterations).
+ */
+function separateOverlappingSiblings(cy) {
+  const GAP = 24;
+  const groups = new Map();
+
+  const rootKey = 'root';
+  cy.nodes().forEach((n) => {
+    const key = n.parent().length ? n.parent().id() : rootKey;
+    if (!groups.has(key)) groups.set(key, []);
+    // Only boxes that can collide at their level: containers and top-level leaves.
+    if (n.isParent() || !n.parent().length) groups.get(key).push(n);
+  });
+
+  for (const items of groups.values()) {
+    if (items.length < 2) continue;
+    for (let iteration = 0; iteration < 25; iteration++) {
+      let moved = false;
+      for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+          const a = items[i].boundingBox();
+          const b = items[j].boundingBox();
+          const overlapX = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
+          const overlapY = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1);
+          if (overlapX <= -GAP || overlapY <= -GAP) continue; // clearly apart already
+          moved = true;
+          if (overlapX <= overlapY) {
+            shiftNode(cy, items[j], (b.x1 + b.x2 < a.x1 + a.x2 ? -1 : 1) * (Math.max(overlapX, 0) + GAP), 0);
+          } else {
+            shiftNode(cy, items[j], 0, (b.y1 + b.y2 < a.y1 + a.y2 ? -1 : 1) * (Math.max(overlapY, 0) + GAP));
+          }
+        }
+      }
+      if (!moved) break;
+    }
+  }
+}
+
+/** Moves a node — for containers, via their descendants (a parent's position is derived). */
+function shiftNode(cy, node, dx, dy) {
+  (node.isParent() ? node.descendants() : cy.collection(node)).forEach((n) => {
+    n.position({ x: n.position('x') + dx, y: n.position('y') + dy });
+  });
 }
 
 function updateElements(graph, { randomize = false } = {}) {
@@ -274,8 +426,11 @@ function updateElements(graph, { randomize = false } = {}) {
   const zoom = cy.zoom();
   const pan = cy.pan();
 
+  // Build the new element list BEFORE clearing: a failure in toElements must
+  // never leave the canvas empty.
+  const elements = toElements(graph);
   cy.elements().remove();
-  cy.add(toElements(graph));
+  cy.add(elements);
 
   // Keep the mental map: surviving nodes stay where they were,
   // brand-new nodes get scattered seeds near the current cloud.
@@ -317,7 +472,10 @@ function updateElements(graph, { randomize = false } = {}) {
   });
   // fcose's own fit can leave the packed components off-center (especially with
   // compound containers) — an explicit fit on completion guarantees centering.
-  layout.on('layoutstop', () => cy.fit(undefined, 30));
+  layout.on('layoutstop', () => {
+    separateOverlappingSiblings(cy);
+    cy.fit(undefined, 30);
+  });
   layout.run();
 
   document.getElementById('counts').textContent =
@@ -442,11 +600,36 @@ async function init() {
   updateMetaInfo();
   buildFilterPanel();
 
+  // View sharing / deep links: ?collapse=pkg1,pkg2 pre-collapses packages.
+  const collapsed = new URLSearchParams(window.location.search).get('collapse');
+  if (collapsed) {
+    collapsed.split(',').map((p) => p.trim()).filter(Boolean).forEach((p) => state.collapsed.add(p));
+  }
+
   state.cy = cytoscape({ container: document.getElementById('cy'), elements: [], style: STYLESHEET });
-  state.cy.on('tap', 'node', (e) => showNodeDetails(e.target.id()));
+  state.cy.on('tap', 'node', (e) => {
+    if (e.target.hasClass('package-group')) return; // collapse handled below
+    if (e.target.hasClass('collapsed-package')) return; // expand handled below
+    showNodeDetails(e.target.id());
+  });
+  state.cy.on('tap', 'node.package-group', (e) => {
+    const pkg = e.target.data('pkg');
+    if (pkg === undefined) return;
+    state.collapsed.add(pkg);
+    if (state.graph) updateElements(state.graph, { randomize: false });
+  });
+  state.cy.on('tap', 'node.collapsed-package', (e) => {
+    const pkg = e.target.data('pkg');
+    if (pkg === undefined) return;
+    state.collapsed.delete(pkg);
+    if (state.graph) updateElements(state.graph, { randomize: false });
+  });
   state.cy.on('tap', (e) => {
     if (e.target === state.cy) document.getElementById('sidebar').hidden = true;
   });
+
+  // Debug/testing hook: reach the view state and render pipeline from the console.
+  window.__constellation = { state, updateElements, toElements };
 
   await updateGraph();
 }
