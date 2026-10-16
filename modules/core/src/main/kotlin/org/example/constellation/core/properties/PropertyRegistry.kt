@@ -1,6 +1,7 @@
 package org.example.constellation.core.properties
 
 import org.example.constellation.core.properties.builtin.DataModelProvider
+import org.example.constellation.core.properties.builtin.StaticComponentProvider
 import java.util.ServiceLoader
 
 /**
@@ -25,6 +26,7 @@ class PropertyRegistry private constructor() {
     companion object {
         fun defaults(): PropertyRegistry = PropertyRegistry().apply {
             register(DataModelProvider())
+            register(StaticComponentProvider())
         }
 
         /** Built-ins plus every provider discoverable via [ServiceLoader]. */

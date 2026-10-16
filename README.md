@@ -64,6 +64,8 @@ constellation {
 `and`/`or`/`not`), UI только выбирает категории:
 
 - **категории вершин** — Class, Data model, Interface, Annotation, External, Test;
+- **свойства** — отдельные тумблеры для каждого свойства из каталога провайдеров
+  (Static component, Data model — если не покрыт категорией, и любые будущие);
 - **типы рёбер**;
 - **пакеты** — выбор пакета включает и все его подпакеты;
 - **скрытие runtime-пакетов** (`java.*`, `kotlin.*`, …) — включено по умолчанию;
@@ -89,10 +91,12 @@ API: `GET /api/graph?kinds=CLASS,DATA&edges=CALLS&pkgs=com.foo&xpkgs=java.*`,
 - **Модель замкнута**: классы, виды, методы с читаемыми сигнатурами
   (`zip(String, int[]): int`), происхождение (`module` + source set или
   external). JVM-дескрипторы существуют только внутри анализатора.
-- **Свойства — плагины**: `DataModel` — первое встроенное свойство;
-  сторонние провайдеры регистрируются в `PropertyRegistry` (кодом или через
-  `META-INF/services/...ClassPropertyProvider`) и автоматически попадают в
-  JSON (`props` у вершин, `propertyCatalog` в meta).
+- **Свойства — плагины**: встроенные `DataModel` (java bean / kotlin data class /
+  record / enum) и `StaticComponent` (object-одиночка со статическим `INSTANCE`,
+  static nested class, класс только со статическими членами — file facade,
+  утилита); сторонние провайдеры регистрируются в `PropertyRegistry` (кодом или
+  через `META-INF/services/...ClassPropertyProvider`) и автоматически попадают в
+  JSON (`props` у вершин, `propertyCatalog` в meta) и в панель фильтров.
 - `ProjectAnalyzer().analyze(AnalysisRequest(roots, registry))` — точка входа
   анализа; метки модулей передаются вызывающим (плагин знает их из Gradle).
 - Классы вида `Foo$bar$1` (лямбды, анонимные объекты) не становятся вершинами,

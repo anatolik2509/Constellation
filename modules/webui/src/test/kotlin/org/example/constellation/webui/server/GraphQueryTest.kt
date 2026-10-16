@@ -68,6 +68,22 @@ class GraphQueryTest {
     }
 
     @Test
+    fun `xprops hides carriers of the listed properties`() {
+        val (nodes, _) = GraphQuery.parse("xprops=constellation.static-component")
+        val plain = node("app.Service", origin = ClassOrigin.Project("app", "main"))
+        val stat = node(
+            "app.Registry", origin = ClassOrigin.Project("app", "main"),
+            properties = listOf(
+                org.example.constellation.core.properties.StaticComponent(
+                    org.example.constellation.core.properties.StaticComponent.CarrierKind.OBJECT,
+                ),
+            ),
+        )
+        assertTrue(nodes.test(plain))
+        assertTrue(!nodes.test(stat))
+    }
+
+    @Test
     fun `unknown token throws`() {
         assertThrows(IllegalArgumentException::class.java) { GraphQuery.parse("kinds=CLASS,NOPE") }
         assertThrows(IllegalArgumentException::class.java) { GraphQuery.parse("edges=NOPE") }
@@ -80,7 +96,7 @@ class GraphQueryTest {
         properties: List<org.example.constellation.core.properties.ClassProperty> = emptyList(),
     ) = Node(
         id = id, kind = kind, origin = origin, pkg = id.substringBeforeLast('.', ""),
-        simpleName = id.substringAfterLast('.'),
+        simpleName = id.substringAfterLast('.'), properties = properties,
     )
 
     private fun anyNode() = node("x.X", origin = ClassOrigin.Project("m", "main"))

@@ -260,4 +260,72 @@ val RICH_FIXTURE: Map<String, String> = mapOf(
             }
         }
     """.trimIndent(),
+
+    /** Static components: singleton, static nested, inner, static holders. */
+    "demo/stat/Singleton.java" to """
+        package demo.stat;
+        public class Singleton {
+            public static final Singleton INSTANCE = new Singleton();
+            private Singleton() { }
+            public String name() { return "s"; }
+        }
+    """.trimIndent(),
+
+    "demo/stat/Outer.java" to """
+        package demo.stat;
+        public class Outer {
+            public static class Util { }
+            public class Inner { }
+        }
+    """.trimIndent(),
+
+    "demo/stat/FileUtils.java" to """
+        package demo.stat;
+        public class FileUtils {
+            public static String ext(String name) { return ""; }
+        }
+    """.trimIndent(),
+
+    "demo/stat/Counter.java" to """
+        package demo.stat;
+        public class Counter {
+            private static int count;
+            public static int next() { return ++count; }
+        }
+    """.trimIndent(),
+
+    /** Not a singleton: INSTANCE holds someone else's type; has instance behavior. */
+    "demo/stat/ClockHolder.java" to """
+        package demo.stat;
+        public class ClockHolder {
+            public static final Singleton INSTANCE = Singleton.INSTANCE;
+            public long now() { return 1L; }
+        }
+    """.trimIndent(),
+
+    /** Constants-only class: static content without any static methods. */
+    "demo/stat/Consts.java" to """
+        package demo.stat;
+        public class Consts {
+            public static final String NAME = "demo";
+            public static final int LIMIT = 10;
+        }
+    """.trimIndent(),
+
+    /** Nested record: implicitly static in bytecode, but a data carrier, not a static component. */
+    "demo/stat/Wrapper.java" to """
+        package demo.stat;
+        public class Wrapper {
+            public record P(int x) { }
+        }
+    """.trimIndent(),
+
+    /** Subclass of a stateful superclass: state is inherited, so not a static holder. */
+    "demo/app/AppException.java" to """
+        package demo.app;
+        public class AppException extends RuntimeException {
+            public AppException(String message) { super(message); }
+            public static AppException wrap(Throwable t) { return new AppException(String.valueOf(t)); }
+        }
+    """.trimIndent(),
 )

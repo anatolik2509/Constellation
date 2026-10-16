@@ -28,8 +28,10 @@ internal class ClassScanner {
         private var enclosingMethod: RawEnclosing? = null
         private var nestHost: String? = null
         private var innerOuterName: String? = null
+        private var innerSelfAccess: Int = 0
         private val interfaces = mutableListOf<String>()
         private val instanceFields = mutableListOf<String>()
+        private val staticFields = mutableListOf<RawField>()
         private val recordComponents = mutableListOf<String>()
         private val methods = mutableListOf<RawMethod>()
         private val calls = mutableListOf<RawCall>()
@@ -40,6 +42,7 @@ internal class ClassScanner {
             superName = superName,
             interfaces = interfaces.toList(),
             instanceFields = instanceFields.toList(),
+            staticFields = staticFields.toList(),
             recordComponents = recordComponents.toList(),
             methods = methods.toList(),
             calls = calls.toList(),
@@ -47,6 +50,7 @@ internal class ClassScanner {
             enclosingMethod = enclosingMethod,
             nestHost = nestHost,
             innerOuterName = innerOuterName,
+            innerSelfAccess = innerSelfAccess,
         )
 
         override fun visit(
@@ -76,7 +80,10 @@ internal class ClassScanner {
         }
 
         override fun visitInnerClass(name: String?, outerName: String?, innerName: String?, access: Int) {
-            if (name == this.name) innerOuterName = outerName
+            if (name == this.name) {
+                innerOuterName = outerName
+                innerSelfAccess = access
+            }
         }
 
         override fun visitRecordComponent(
@@ -95,11 +102,12 @@ internal class ClassScanner {
             signature: String?,
             value: Any?,
         ): FieldVisitor? {
-            if (name != null &&
-                access and Opcodes.ACC_STATIC == 0 &&
-                access and Opcodes.ACC_SYNTHETIC == 0
-            ) {
-                instanceFields += name
+            if (name != null && descriptor != null && access and Opcodes.ACC_SYNTHETIC == 0) {
+                if (access and Opcodes.ACC_STATIC == 0) {
+                    instanceFields += name
+                } else {
+                    staticFields += RawField(name, descriptor)
+                }
             }
             return null
         }

@@ -85,6 +85,7 @@ class GraphJsonTest {
         assertTrue(json.contains("\"CALLS\":1"))
         assertTrue(json.contains("\"DATA\":1"))
         assertTrue(json.contains("\"constellation.data-model\""))
+        assertTrue(json.contains("\"displayName\":\"Data model\""))
         // external package java.lang must not be offered in the package list
         assertTrue(json.contains("\"name\":\"demo\""))
     }

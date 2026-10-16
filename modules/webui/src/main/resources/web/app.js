@@ -33,6 +33,7 @@ const state = {
   kinds: new Set(CATEGORIES.map((c) => c.id).filter((c) => c !== 'EXTERNAL' && c !== 'TEST')),
   edgeTypes: new Set(EDGE_TYPES.map((e) => e.id)),
   packages: null, // null = all (no packages filter)
+  hiddenProps: new Set(), // property ids whose carriers are hidden (xprops)
   hideRuntime: true,
   groupByPackage: true,
   collapsed: new Set(), // collapsed package names (view-level, survives refilters)
@@ -66,6 +67,7 @@ function buildQuery() {
     params.push(`pkgs=${encodeURIComponent(pkgs.join(','))}`);
   }
   if (state.hideRuntime) params.push(`xpkgs=${encodeURIComponent(RUNTIME_PACKAGES.join(','))}`);
+  if (state.hiddenProps.size > 0) params.push(`xprops=${encodeURIComponent([...state.hiddenProps].join(','))}`);
   return params.length ? `?${params.join('&')}` : '';
 }
 
@@ -99,6 +101,23 @@ function buildFilterPanel() {
     const cb = e.target.closest('input[data-edge]');
     if (!cb) return;
     cb.checked ? state.edgeTypes.add(cb.dataset.edge) : state.edgeTypes.delete(cb.dataset.edge);
+    scheduleUpdate();
+  });
+
+  // Generic property toggles: whatever providers tagged the graph with
+  // (data model, static component, future ones) gets a filter row.
+  const propsEl = document.getElementById('propertyFilters');
+  const catalog = state.meta.propertyCatalog || [];
+  document.getElementById('propertySection').hidden = catalog.length === 0;
+  propsEl.innerHTML = catalog.map((p) => `
+    <label title="${escapeAttr(p.id)}">
+      <input type="checkbox" data-prop="${escapeAttr(p.id)}" checked>
+      <span class="name">${escapeHtml(p.displayName)}</span>
+      <span class="count">${p.count}</span></label>`).join('');
+  propsEl.addEventListener('change', (e) => {
+    const cb = e.target.closest('input[data-prop]');
+    if (!cb) return;
+    cb.checked ? state.hiddenProps.delete(cb.dataset.prop) : state.hiddenProps.add(cb.dataset.prop);
     scheduleUpdate();
   });
 
@@ -505,6 +524,11 @@ const CARRIER_LABEL = {
   JAVA_RECORD: 'record',
   ENUM: 'enum',
 };
+const STATIC_CARRIER_LABEL = {
+  OBJECT: 'object / singleton',
+  STATIC_NESTED: 'static nested',
+  STATIC_HOLDER: 'static holder',
+};
 
 /** Provider properties rendered generically; known payloads get nicer labels. */
 function propsBadge(node) {
@@ -512,6 +536,9 @@ function propsBadge(node) {
   return node.props.map((p) => {
     if (p.id === 'constellation.data-model') {
       return ` · ${CARRIER_LABEL[p.carrier] || p.carrier}`;
+    }
+    if (p.id === 'constellation.static-component') {
+      return ` · ${STATIC_CARRIER_LABEL[p.carrier] || p.carrier}`;
     }
     return ` · ${p.id}`;
   }).join('');

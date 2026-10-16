@@ -19,6 +19,14 @@ object GraphJson {
     private val json = JsonNodeFactory.instance
     private val mapper = ObjectMapper()
 
+    /** Provider display names, when the providers are on this classpath. */
+    private val displayNames: Map<String, String> by lazy {
+        runCatching {
+            org.example.constellation.core.properties.PropertyRegistry.discover()
+                .all().associate { it.id.value to it.displayName }
+        }.getOrDefault(emptyMap())
+    }
+
     fun graph(g: CodeGraph): String = mapper.writeValueAsString(
         obj {
             putArray("nodes").addAll(g.nodes.map(::nodeJson))
@@ -53,7 +61,7 @@ object GraphJson {
                     .map { id ->
                         obj {
                             put("id", id)
-                            put("displayName", id.substringAfterLast('.'))
+                            put("displayName", displayNames[id] ?: id.substringAfterLast('.'))
                             put("count", g.nodes.count { n -> n.properties.any { it.id.value == id } })
                         }
                     },
@@ -112,6 +120,7 @@ object GraphJson {
                 put("carrier", p.carrier.name)
                 putArray("components").addAll(p.components.map(json::textNode))
             }
+            is org.example.constellation.core.properties.StaticComponent -> put("carrier", p.carrier.name)
         }
     }
 

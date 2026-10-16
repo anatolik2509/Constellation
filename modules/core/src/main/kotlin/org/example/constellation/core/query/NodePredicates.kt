@@ -30,6 +30,10 @@ object NodePredicates {
         node.properties.any { it.id == id }
     }
 
+    fun hasAnyProperty(ids: Collection<PropertyId>): NodePredicate = NodePredicate { node ->
+        ids.any { id -> node.properties.any { it.id == id } }
+    }
+
     fun inPackage(vararg patterns: String): NodePredicate = NodePredicate { node ->
         patterns.any { PackageMatcher.matches(it, node.pkg) }
     }

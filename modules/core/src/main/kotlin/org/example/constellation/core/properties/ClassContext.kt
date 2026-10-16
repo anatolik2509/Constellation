@@ -2,14 +2,6 @@ package org.example.constellation.core.properties
 
 import org.example.constellation.core.analyze.RawClassInfo
 
-/** One declared method as seen by the analyzer — technical, providers-only. */
-class MethodDecl(
-    val name: String,
-    val descriptor: String,
-    val isStatic: Boolean,
-    val isSynthetic: Boolean,
-)
-
 /**
  * The only sanctioned technical surface: property providers may look at bytecode
  * facts here, but nothing they return may leak into the model.
@@ -21,9 +13,17 @@ class ClassContext internal constructor(raw: RawClassInfo) {
     val isAnnotation: Boolean = raw.access and 0x2000 != 0
     val isEnum: Boolean = raw.access and 0x4000 != 0
     val isSynthetic: Boolean = raw.access and 0x1000 != 0
+
+    /** Records identify themselves by their superclass. */
+    val isRecord: Boolean = raw.superName == "java/lang/Record"
     val superName: String? = raw.superName
     val interfaces: List<String> = raw.interfaces
     val instanceFields: List<String> = raw.instanceFields
+    val staticFields: List<StaticFieldDecl> =
+        raw.staticFields.map { StaticFieldDecl(it.name, it.descriptor) }
+
+    /** Nested and declared static in its own InnerClasses entry (Java static nested, Kotlin object/companion). */
+    val isStaticNested: Boolean = raw.innerSelfAccess and 0x0008 != 0
     val recordComponents: List<String> = raw.recordComponents
     val methods: List<MethodDecl> = raw.methods.map {
         MethodDecl(
