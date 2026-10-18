@@ -1,37 +1,37 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
-import org.example.constellation.core.properties.builtin.DataModelProvider
-import org.example.constellation.core.properties.builtin.StaticComponentProvider
+import org.example.constellation.core.traits.builtin.DataModelProvider
+import org.example.constellation.core.traits.builtin.StaticComponentProvider
 import java.util.ServiceLoader
 
 /**
  * Open registration API. Built-ins are always present; [discover] additionally
- * loads providers registered via `META-INF/services/...ClassPropertyProvider`.
+ * loads providers registered via `META-INF/services/...ClassTraitProvider`.
  */
-class PropertyRegistry private constructor() {
+class TraitRegistry private constructor() {
 
-    private val providers = LinkedHashMap<PropertyId, ClassPropertyProvider>()
+    private val providers = LinkedHashMap<TraitId, ClassTraitProvider>()
 
-    fun register(provider: ClassPropertyProvider) {
+    fun register(provider: ClassTraitProvider) {
         providers[provider.id] = provider
     }
 
-    fun all(): List<ClassPropertyProvider> = providers.values.toList()
+    fun all(): List<ClassTraitProvider> = providers.values.toList()
 
-    fun detectAll(ctx: ClassContext): List<ClassProperty> =
+    fun detectAll(ctx: ClassContext): List<ClassTrait> =
         providers.values
-            .mapNotNull { it.propertiesFor(ctx) }
+            .mapNotNull { it.traitFor(ctx) }
             .sortedBy { it.id.value }
 
     companion object {
-        fun defaults(): PropertyRegistry = PropertyRegistry().apply {
+        fun defaults(): TraitRegistry = TraitRegistry().apply {
             register(DataModelProvider())
             register(StaticComponentProvider())
         }
 
         /** Built-ins plus every provider discoverable via [ServiceLoader]. */
-        fun discover(): PropertyRegistry = defaults().apply {
-            runCatching { ServiceLoader.load(ClassPropertyProvider::class.java) }
+        fun discover(): TraitRegistry = defaults().apply {
+            runCatching { ServiceLoader.load(ClassTraitProvider::class.java) }
                 .getOrNull()
                 ?.forEach { register(it) }
         }

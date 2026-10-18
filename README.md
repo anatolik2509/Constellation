@@ -64,7 +64,7 @@ constellation {
 `and`/`or`/`not`), UI только выбирает категории:
 
 - **категории вершин** — Class, Data model, Interface, Annotation, External, Test;
-- **свойства** — отдельные тумблеры для каждого свойства из каталога провайдеров
+- **трейты** — отдельные тумблеры для каждого трейта из каталога провайдеров
   (Static component, Data model — если не покрыт категорией, и любые будущие);
 - **типы рёбер**;
 - **пакеты** — выбор пакета включает и все его подпакеты;
@@ -76,13 +76,13 @@ constellation {
   (клик по ноде разворачивает; вид можно пошарить через `?collapse=pkg1,pkg2`).
 
 API: `GET /api/graph?kinds=CLASS,DATA&edges=CALLS&pkgs=com.foo&xpkgs=java.*`,
-`GET /api/meta` — счётчики и каталог свойств.
+`GET /api/meta` — счётчики и каталог трейтов.
 
 ## Архитектура
 
 | Модуль | Ответственность |
 |---|---|
-| `modules/core` | **закрытая модель кода** (`model/`), компонуемые предикаты (`query/`), система свойств с открытым реестром провайдеров (`properties/`), анализатор (`analyze/`: ASM живёт только здесь). Не знает про UI, HTTP и Gradle |
+| `modules/core` | **закрытая модель кода** (`model/`), компонуемые предикаты (`query/`), система трейтов с открытым реестром провайдеров (`traits/`), анализатор (`analyze/`: ASM живёт только здесь). Не знает про UI, HTTP и Gradle |
 | `modules/webui` | встраиваемый HTTP-сервер (JDK `HttpServer`), JSON-API, веб-страница с cytoscape.js (вендорена, без CDN) |
 | `modules/gradle-plugin` | Gradle-плагин `org.example.constellation`: задача `constellation`, зависит от компиляции, анализирует её результаты |
 
@@ -91,12 +91,12 @@ API: `GET /api/graph?kinds=CLASS,DATA&edges=CALLS&pkgs=com.foo&xpkgs=java.*`,
 - **Модель замкнута**: классы, виды, методы с читаемыми сигнатурами
   (`zip(String, int[]): int`), происхождение (`module` + source set или
   external). JVM-дескрипторы существуют только внутри анализатора.
-- **Свойства — плагины**: встроенные `DataModel` (java bean / kotlin data class /
+- **Трейты — плагины**: встроенные `DataModel` (java bean / kotlin data class /
   record / enum) и `StaticComponent` (object-одиночка со статическим `INSTANCE`,
   static nested class, класс только со статическими членами — file facade,
-  утилита); сторонние провайдеры регистрируются в `PropertyRegistry` (кодом или
-  через `META-INF/services/...ClassPropertyProvider`) и автоматически попадают в
-  JSON (`props` у вершин, `propertyCatalog` в meta) и в панель фильтров.
+  утилита); сторонние провайдеры регистрируются в `TraitRegistry` (кодом или
+  через `META-INF/services/...ClassTraitProvider`) и автоматически попадают в
+  JSON (`traits` у вершин, `traitCatalog` в meta) и в панель фильтров.
 - `ProjectAnalyzer().analyze(AnalysisRequest(roots, registry))` — точка входа
   анализа; метки модулей передаются вызывающим (плагин знает их из Gradle).
 - Классы вида `Foo$bar$1` (лямбды, анонимные объекты) не становятся вершинами,
@@ -116,7 +116,7 @@ API: `GET /api/graph?kinds=CLASS,DATA&edges=CALLS&pkgs=com.foo&xpkgs=java.*`,
 ./gradlew test -PskipPerfSmoke   # без перф-смока
 ```
 
-Тесты (~66): анализатор на javac-фикстурах, свойства/реестр (включая
+Тесты (~85): анализатор на javac-фикстурах, трейты/реестр (включая
 ServiceLoader), предикаты, JSON/API, смок сервера, ProjectBuilder + TestKit
 для плагина, self-dogfood и perf-smoke.
 

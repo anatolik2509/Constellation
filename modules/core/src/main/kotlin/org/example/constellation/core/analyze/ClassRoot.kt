@@ -1,6 +1,6 @@
 package org.example.constellation.core.analyze
 
-import org.example.constellation.core.properties.PropertyRegistry
+import org.example.constellation.core.traits.TraitRegistry
 import java.nio.file.Path
 
 /**
@@ -10,8 +10,8 @@ import java.nio.file.Path
  */
 data class ClassRoot(val dir: Path, val module: String, val sourceSet: String)
 
-/** What to analyze: class roots plus the property providers to run. */
+/** What to analyze: class roots plus the trait providers to run. */
 data class AnalysisRequest(
     val roots: List<ClassRoot>,
-    val registry: PropertyRegistry = PropertyRegistry.discover(),
+    val registry: TraitRegistry = TraitRegistry.discover(),
 )

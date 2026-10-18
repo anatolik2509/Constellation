@@ -1,4 +1,4 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
 /**
  * The class is a data carrier: it exists to hold values, not to behave.
@@ -8,12 +8,12 @@ data class DataModel(
     val carrier: CarrierKind,
     /** Fields / record components the carrier is built from. */
     val components: List<String>,
-) : ClassProperty {
+) : ClassTrait {
     enum class CarrierKind { JAVA_BEAN, KOTLIN_DATA_CLASS, JAVA_RECORD, ENUM }
 
-    override val id: PropertyId get() = ID
+    override val id: TraitId get() = ID
 
     companion object {
-        val ID = PropertyId("constellation.data-model")
+        val ID = TraitId("constellation.data-model")
     }
 }

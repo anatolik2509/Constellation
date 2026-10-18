@@ -1,13 +1,13 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
-object EverythingProvider : ClassPropertyProvider {
-    override val id = PropertyId("test.everything")
+object EverythingProvider : ClassTraitProvider {
+    override val id = TraitId("test.everything")
     override val displayName = "Everything"
 
-    override fun propertiesFor(ctx: ClassContext): ClassProperty? =
+    override fun traitFor(ctx: ClassContext): ClassTrait? =
         if (ctx.name.startsWith("demo/")) Marker else null
 
-    object Marker : ClassProperty {
-        override val id = PropertyId("test.everything")
+    object Marker : ClassTrait {
+        override val id = TraitId("test.everything")
     }
 }

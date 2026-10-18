@@ -10,15 +10,15 @@ import org.example.constellation.core.model.MethodSignature
 import org.example.constellation.core.model.Node
 import org.example.constellation.core.model.ParseError
 import org.example.constellation.core.model.Relation
-import org.example.constellation.core.properties.ClassContext
-import org.example.constellation.core.properties.PropertyRegistry
+import org.example.constellation.core.traits.ClassContext
+import org.example.constellation.core.traits.TraitRegistry
 import org.example.constellation.core.util.Names
 
 /**
  * Builds the closed code model ([CodeGraph]) from compiled project classes.
  * This is where the bytecode world ends: descriptors are parsed into
  * [MethodSignature]s, access flags become kinds and origins, and providers
- * attach properties.
+ * attach traits.
  */
 class ProjectAnalyzer {
 
@@ -70,7 +70,7 @@ class ProjectAnalyzer {
 
     private class ScannedClass(val info: RawClassInfo, val root: ClassRoot)
 
-    private fun toNode(scanned: ScannedClass, registry: PropertyRegistry): Node {
+    private fun toNode(scanned: ScannedClass, registry: TraitRegistry): Node {
         val info = scanned.info
         val dotName = Names.toDotName(info.name)
         return Node(
@@ -86,7 +86,7 @@ class ProjectAnalyzer {
                 .distinct()
                 .sortedWith(compareBy({ it.name }, { it.renderFull() }))
                 .toList(),
-            properties = registry.detectAll(ClassContext(info)),
+            traits = registry.detectAll(ClassContext(info)),
         )
     }
 
@@ -102,7 +102,7 @@ class ProjectAnalyzer {
             simpleName = Names.simpleNameOf(dotName),
             sourceFile = null,
             declaredMethods = emptyList(),
-            properties = emptyList(),
+            traits = emptyList(),
         )
     }
 

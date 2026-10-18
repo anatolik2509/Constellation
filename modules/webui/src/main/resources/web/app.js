@@ -33,7 +33,7 @@ const state = {
   kinds: new Set(CATEGORIES.map((c) => c.id).filter((c) => c !== 'EXTERNAL' && c !== 'TEST')),
   edgeTypes: new Set(EDGE_TYPES.map((e) => e.id)),
   packages: null, // null = all (no packages filter)
-  hiddenProps: new Set(), // property ids whose carriers are hidden (xprops)
+  hiddenTraits: new Set(), // trait ids whose carriers are hidden (xtraits)
   hideRuntime: true,
   groupByPackage: true,
   collapsed: new Set(), // collapsed package names (view-level, survives refilters)
@@ -67,7 +67,7 @@ function buildQuery() {
     params.push(`pkgs=${encodeURIComponent(pkgs.join(','))}`);
   }
   if (state.hideRuntime) params.push(`xpkgs=${encodeURIComponent(RUNTIME_PACKAGES.join(','))}`);
-  if (state.hiddenProps.size > 0) params.push(`xprops=${encodeURIComponent([...state.hiddenProps].join(','))}`);
+  if (state.hiddenTraits.size > 0) params.push(`xtraits=${encodeURIComponent([...state.hiddenTraits].join(','))}`);
   return params.length ? `?${params.join('&')}` : '';
 }
 
@@ -104,20 +104,20 @@ function buildFilterPanel() {
     scheduleUpdate();
   });
 
-  // Generic property toggles: whatever providers tagged the graph with
+  // Generic trait toggles: whatever providers tagged the graph with
   // (data model, static component, future ones) gets a filter row.
-  const propsEl = document.getElementById('propertyFilters');
-  const catalog = state.meta.propertyCatalog || [];
-  document.getElementById('propertySection').hidden = catalog.length === 0;
-  propsEl.innerHTML = catalog.map((p) => `
-    <label title="${escapeAttr(p.id)}">
-      <input type="checkbox" data-prop="${escapeAttr(p.id)}" checked>
-      <span class="name">${escapeHtml(p.displayName)}</span>
-      <span class="count">${p.count}</span></label>`).join('');
-  propsEl.addEventListener('change', (e) => {
-    const cb = e.target.closest('input[data-prop]');
+  const traitsEl = document.getElementById('traitFilters');
+  const catalog = state.meta.traitCatalog || [];
+  document.getElementById('traitSection').hidden = catalog.length === 0;
+  traitsEl.innerHTML = catalog.map((t) => `
+    <label title="${escapeAttr(t.id)}">
+      <input type="checkbox" data-trait="${escapeAttr(t.id)}" checked>
+      <span class="name">${escapeHtml(t.displayName)}</span>
+      <span class="count">${t.count}</span></label>`).join('');
+  traitsEl.addEventListener('change', (e) => {
+    const cb = e.target.closest('input[data-trait]');
     if (!cb) return;
-    cb.checked ? state.hiddenProps.delete(cb.dataset.prop) : state.hiddenProps.add(cb.dataset.prop);
+    cb.checked ? state.hiddenTraits.delete(cb.dataset.trait) : state.hiddenTraits.add(cb.dataset.trait);
     scheduleUpdate();
   });
 
@@ -530,17 +530,17 @@ const STATIC_CARRIER_LABEL = {
   STATIC_HOLDER: 'static holder',
 };
 
-/** Provider properties rendered generically; known payloads get nicer labels. */
-function propsBadge(node) {
-  if (!node.props || node.props.length === 0) return '';
-  return node.props.map((p) => {
-    if (p.id === 'constellation.data-model') {
-      return ` · ${CARRIER_LABEL[p.carrier] || p.carrier}`;
+/** Provider traits rendered generically; known payloads get nicer labels. */
+function traitsBadge(node) {
+  if (!node.traits || node.traits.length === 0) return '';
+  return node.traits.map((t) => {
+    if (t.id === 'constellation.data-model') {
+      return ` · ${CARRIER_LABEL[t.carrier] || t.carrier}`;
     }
-    if (p.id === 'constellation.static-component') {
-      return ` · ${STATIC_CARRIER_LABEL[p.carrier] || p.carrier}`;
+    if (t.id === 'constellation.static-component') {
+      return ` · ${STATIC_CARRIER_LABEL[t.carrier] || t.carrier}`;
     }
-    return ` · ${p.id}`;
+    return ` · ${t.id}`;
   }).join('');
 }
 
@@ -572,7 +572,7 @@ function showNodeDetails(id) {
     <button class="close" title="Close">✕</button>
     <h3>${escapeHtml(node.id)}</h3>
     <span class="badge">${swatchHtml({ color: CAT_COLOR[node.category], shape: 'round-rectangle' })}
-      ${CAT_LABEL[node.category]}${propsBadge(node)}</span>
+      ${CAT_LABEL[node.category]}${traitsBadge(node)}</span>
     <div class="kv">package: <code>${node.pkg === '' ? '(default)' : escapeHtml(node.pkg)}</code></div>
     ${originLines(node)}
     ${node.sourceFile ? `<div class="kv">source: <code>${escapeHtml(node.sourceFile)}</code></div>` : ''}

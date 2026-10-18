@@ -30,7 +30,7 @@ class ConstellationServerSmokeTest {
     private fun node(id: String, origin: ClassOrigin) = Node(
         id = id, kind = ClassKind.CLASS, origin = origin,
         pkg = id.substringBeforeLast('.', ""), simpleName = id.substringAfterLast('.'),
-        sourceFile = null, declaredMethods = emptyList(), properties = emptyList(),
+        sourceFile = null, declaredMethods = emptyList(), traits = emptyList(),
     )
 
     @Test

@@ -1,4 +1,4 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
 import org.example.constellation.core.analyze.AnalysisRequest
 import org.example.constellation.core.analyze.ClassRoot
@@ -26,7 +26,7 @@ class StaticComponentTest {
     }
 
     private fun staticComponent(n: Node): StaticComponent? =
-        n.properties.filterIsInstance<StaticComponent>().firstOrNull()
+        n.traits.filterIsInstance<StaticComponent>().firstOrNull()
 
     @Test
     fun `singleton with static INSTANCE is an object`() {
@@ -87,8 +87,8 @@ class StaticComponentTest {
         assertNull(staticComponent(n))
         // it is still a data model
         assertEquals(
-            org.example.constellation.core.properties.DataModel.CarrierKind.JAVA_RECORD,
-            n.properties.filterIsInstance<org.example.constellation.core.properties.DataModel>().first().carrier,
+            org.example.constellation.core.traits.DataModel.CarrierKind.JAVA_RECORD,
+            n.traits.filterIsInstance<org.example.constellation.core.traits.DataModel>().first().carrier,
         )
     }
 
@@ -99,6 +99,6 @@ class StaticComponentTest {
 
     @Test
     fun `defaults register the static provider`() {
-        assertTrue(PropertyRegistry.defaults().all().any { it.id == StaticComponent.ID })
+        assertTrue(TraitRegistry.defaults().all().any { it.id == StaticComponent.ID })
     }
 }

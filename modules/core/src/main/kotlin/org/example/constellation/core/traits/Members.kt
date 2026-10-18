@@ -1,4 +1,4 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
 /** One declared method as seen by the analyzer — technical, providers-only. */
 class MethodDecl(

@@ -10,8 +10,8 @@ import org.example.constellation.core.model.Edge
 import org.example.constellation.core.model.MethodSignature
 import org.example.constellation.core.model.Node
 import org.example.constellation.core.model.Relation
-import org.example.constellation.core.properties.ClassProperty
-import org.example.constellation.core.properties.DataModel
+import org.example.constellation.core.traits.ClassTrait
+import org.example.constellation.core.traits.DataModel
 
 /** Pure JSON rendering of the graph and its meta information. */
 object GraphJson {
@@ -22,7 +22,7 @@ object GraphJson {
     /** Provider display names, when the providers are on this classpath. */
     private val displayNames: Map<String, String> by lazy {
         runCatching {
-            org.example.constellation.core.properties.PropertyRegistry.discover()
+            org.example.constellation.core.traits.TraitRegistry.discover()
                 .all().associate { it.id.value to it.displayName }
         }.getOrDefault(emptyMap())
     }
@@ -55,14 +55,14 @@ object GraphJson {
                 g.edges.count { it.type.name == rel }
             }
             // Providers known to this graph — UIs can render unknown ones generically.
-            putArray("propertyCatalog").addAll(
-                g.nodes.flatMap { it.properties.map { p -> p.id.value } }
+            putArray("traitCatalog").addAll(
+                g.nodes.flatMap { it.traits.map { t -> t.id.value } }
                     .toSortedSet()
                     .map { id ->
                         obj {
                             put("id", id)
                             put("displayName", displayNames[id] ?: id.substringAfterLast('.'))
-                            put("count", g.nodes.count { n -> n.properties.any { it.id.value == id } })
+                            put("count", g.nodes.count { n -> n.traits.any { it.id.value == id } })
                         }
                     },
             )
@@ -101,7 +101,7 @@ object GraphJson {
                 ClassOrigin.External -> put("type", "external")
             }
         }
-        putArray("props").addAll(n.properties.map(::propertyJson))
+        putArray("traits").addAll(n.traits.map(::traitJson))
         putArray("methods").addAll(
             n.declaredMethods.map { m ->
                 obj {
@@ -113,14 +113,14 @@ object GraphJson {
         )
     }
 
-    private fun propertyJson(p: ClassProperty): JsonNode = obj {
-        put("id", p.id.value)
-        when (p) {
+    private fun traitJson(t: ClassTrait): JsonNode = obj {
+        put("id", t.id.value)
+        when (t) {
             is DataModel -> {
-                put("carrier", p.carrier.name)
-                putArray("components").addAll(p.components.map(json::textNode))
+                put("carrier", t.carrier.name)
+                putArray("components").addAll(t.components.map(json::textNode))
             }
-            is org.example.constellation.core.properties.StaticComponent -> put("carrier", p.carrier.name)
+            is org.example.constellation.core.traits.StaticComponent -> put("carrier", t.carrier.name)
         }
     }
 

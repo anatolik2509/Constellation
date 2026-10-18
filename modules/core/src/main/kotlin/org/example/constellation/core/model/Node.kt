@@ -1,11 +1,11 @@
 package org.example.constellation.core.model
 
-import org.example.constellation.core.properties.ClassProperty
+import org.example.constellation.core.traits.ClassTrait
 
 /**
  * A class in the code graph.
  *
- * Additional classifications ([properties]) come from property providers and are
+ * Additional classifications ([traits]) come from trait providers and are
  * part of the model's self-description, not of its bytecode past.
  */
 data class Node(
@@ -21,8 +21,8 @@ data class Node(
     val sourceFile: String? = null,
     /** Declared methods, sorted. */
     val declaredMethods: List<MethodSignature> = emptyList(),
-    /** Provider-assigned properties (e.g. DataModel), sorted by id. */
-    val properties: List<ClassProperty> = emptyList(),
+    /** Provider-assigned traits (e.g. DataModel), sorted by id. */
+    val traits: List<ClassTrait> = emptyList(),
 ) {
     val isExternal: Boolean get() = origin == ClassOrigin.External
 }

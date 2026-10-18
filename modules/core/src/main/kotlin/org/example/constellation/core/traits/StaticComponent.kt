@@ -1,4 +1,4 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
 /**
  * The class is a static component: a namespaced/singleton unit rather than an
@@ -6,12 +6,12 @@ package org.example.constellation.core.properties
  */
 data class StaticComponent(
     val carrier: CarrierKind,
-) : ClassProperty {
+) : ClassTrait {
     enum class CarrierKind { OBJECT, STATIC_NESTED, STATIC_HOLDER }
 
-    override val id: PropertyId get() = ID
+    override val id: TraitId get() = ID
 
     companion object {
-        val ID = PropertyId("constellation.static-component")
+        val ID = TraitId("constellation.static-component")
     }
 }

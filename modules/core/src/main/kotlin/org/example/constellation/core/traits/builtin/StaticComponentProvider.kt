@@ -1,10 +1,10 @@
-package org.example.constellation.core.properties.builtin
+package org.example.constellation.core.traits.builtin
 
-import org.example.constellation.core.properties.ClassContext
-import org.example.constellation.core.properties.ClassProperty
-import org.example.constellation.core.properties.ClassPropertyProvider
-import org.example.constellation.core.properties.PropertyId
-import org.example.constellation.core.properties.StaticComponent
+import org.example.constellation.core.traits.ClassContext
+import org.example.constellation.core.traits.ClassTrait
+import org.example.constellation.core.traits.ClassTraitProvider
+import org.example.constellation.core.traits.StaticComponent
+import org.example.constellation.core.traits.TraitId
 
 /**
  * Built-in [StaticComponent] detection. Carriers, by what the bytecode shows:
@@ -15,12 +15,12 @@ import org.example.constellation.core.properties.StaticComponent
  * STATIC_HOLDER — nothing of its own but static members and it inherits nothing
  * either (Kotlin file facades, utility and constants-only classes).
  */
-class StaticComponentProvider : ClassPropertyProvider {
+class StaticComponentProvider : ClassTraitProvider {
 
-    override val id: PropertyId = StaticComponent.ID
+    override val id: TraitId = StaticComponent.ID
     override val displayName: String = "Static component"
 
-    override fun propertiesFor(ctx: ClassContext): ClassProperty? {
+    override fun traitFor(ctx: ClassContext): ClassTrait? {
         // Enums/records are data carriers (DataModel), not static components — their
         // static members would otherwise trip the heuristics below.
         if (ctx.isInterface || ctx.isAnnotation || ctx.isEnum || ctx.isRecord || ctx.isSynthetic) return null

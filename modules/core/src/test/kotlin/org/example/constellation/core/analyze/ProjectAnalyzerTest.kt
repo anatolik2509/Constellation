@@ -6,7 +6,7 @@ import org.example.constellation.core.model.CodeGraph
 import org.example.constellation.core.model.Edge
 import org.example.constellation.core.model.Node
 import org.example.constellation.core.model.Relation
-import org.example.constellation.core.properties.DataModel
+import org.example.constellation.core.traits.DataModel
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -34,7 +34,7 @@ class ProjectAnalyzerTest {
         graph.edges.firstOrNull { it.from == from && it.to == to && it.type == type }
 
     @Test
-    fun `kinds - class, interface, annotation, and enum-record are classes with properties`() {
+    fun `kinds - class, interface, annotation, and enum-record are classes with traits`() {
         val g = analyze()
         assertEquals(ClassKind.CLASS, node(g, "demo.model.Point")?.kind)
         assertEquals(ClassKind.INTERFACE, node(g, "demo.model.Shape")?.kind)
@@ -128,10 +128,10 @@ class ProjectAnalyzerTest {
     }
 
     @Test
-    fun `external nodes carry no properties and no methods`() {
+    fun `external nodes carry no traits and no methods`() {
         val g = analyze()
         val ext = node(g, "java.lang.String")!!
-        assertTrue(ext.properties.isEmpty())
+        assertTrue(ext.traits.isEmpty())
         assertTrue(ext.declaredMethods.isEmpty())
     }
 

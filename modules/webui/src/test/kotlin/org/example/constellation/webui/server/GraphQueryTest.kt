@@ -5,7 +5,7 @@ import org.example.constellation.core.model.ClassOrigin
 import org.example.constellation.core.model.Edge
 import org.example.constellation.core.model.Node
 import org.example.constellation.core.model.Relation
-import org.example.constellation.core.properties.DataModel
+import org.example.constellation.core.traits.DataModel
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -25,7 +25,7 @@ class GraphQueryTest {
 
         val projectClass = node(
             "com.foo.A", origin = ClassOrigin.Project("m", "main"),
-            properties = listOf(DataModel(DataModel.CarrierKind.JAVA_BEAN, listOf("x"))),
+            traits = listOf(DataModel(DataModel.CarrierKind.JAVA_BEAN, listOf("x"))),
         )
         val external = node("java.lang.String", origin = ClassOrigin.External)
         assertTrue(nodes.test(projectClass)) // DATA
@@ -68,14 +68,14 @@ class GraphQueryTest {
     }
 
     @Test
-    fun `xprops hides carriers of the listed properties`() {
-        val (nodes, _) = GraphQuery.parse("xprops=constellation.static-component")
+    fun `xtraits hides carriers of the listed traits`() {
+        val (nodes, _) = GraphQuery.parse("xtraits=constellation.static-component")
         val plain = node("app.Service", origin = ClassOrigin.Project("app", "main"))
         val stat = node(
             "app.Registry", origin = ClassOrigin.Project("app", "main"),
-            properties = listOf(
-                org.example.constellation.core.properties.StaticComponent(
-                    org.example.constellation.core.properties.StaticComponent.CarrierKind.OBJECT,
+            traits = listOf(
+                org.example.constellation.core.traits.StaticComponent(
+                    org.example.constellation.core.traits.StaticComponent.CarrierKind.OBJECT,
                 ),
             ),
         )
@@ -93,10 +93,10 @@ class GraphQueryTest {
         id: String,
         kind: ClassKind = ClassKind.CLASS,
         origin: ClassOrigin,
-        properties: List<org.example.constellation.core.properties.ClassProperty> = emptyList(),
+        traits: List<org.example.constellation.core.traits.ClassTrait> = emptyList(),
     ) = Node(
         id = id, kind = kind, origin = origin, pkg = id.substringBeforeLast('.', ""),
-        simpleName = id.substringAfterLast('.'), properties = properties,
+        simpleName = id.substringAfterLast('.'), traits = traits,
     )
 
     private fun anyNode() = node("x.X", origin = ClassOrigin.Project("m", "main"))

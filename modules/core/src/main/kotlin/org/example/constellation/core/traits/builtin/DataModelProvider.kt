@@ -1,21 +1,22 @@
-package org.example.constellation.core.properties.builtin
+package org.example.constellation.core.traits.builtin
 
-import org.example.constellation.core.properties.ClassContext
-import org.example.constellation.core.properties.ClassProperty
-import org.example.constellation.core.properties.ClassPropertyProvider
-import org.example.constellation.core.properties.DataModel
-import org.example.constellation.core.properties.PropertyId
+import org.example.constellation.core.traits.ClassContext
+import org.example.constellation.core.traits.ClassTrait
+import org.example.constellation.core.traits.ClassTraitProvider
+import org.example.constellation.core.traits.DataModel
+import org.example.constellation.core.traits.MethodDecl
+import org.example.constellation.core.traits.TraitId
 
 /**
  * Built-in [DataModel] detection: the class is a value carrier rather than behavior.
  * Carrier priority: ENUM > JAVA_RECORD > KOTLIN_DATA_CLASS > JAVA_BEAN.
  */
-class DataModelProvider : ClassPropertyProvider {
+class DataModelProvider : ClassTraitProvider {
 
-    override val id: PropertyId = DataModel.ID
+    override val id: TraitId = DataModel.ID
     override val displayName: String = "Data model"
 
-    override fun propertiesFor(ctx: ClassContext): ClassProperty? {
+    override fun traitFor(ctx: ClassContext): ClassTrait? {
         if (ctx.isInterface || ctx.isAnnotation || ctx.isSynthetic) return null
 
         if (ctx.isEnum) return DataModel(DataModel.CarrierKind.ENUM, ctx.instanceFields)
@@ -43,7 +44,7 @@ class DataModelProvider : ClassPropertyProvider {
     private fun isBeanShaped(ctx: ClassContext, fields: Set<String>): Boolean =
         ctx.methods.all { isAllowed(ctx, it, fields) }
 
-    private fun isAllowed(ctx: ClassContext, m: org.example.constellation.core.properties.MethodDecl, fields: Set<String>): Boolean {
+    private fun isAllowed(ctx: ClassContext, m: MethodDecl, fields: Set<String>): Boolean {
         // Bridge/synthetic methods (e.g. compareTo(Object) erasure) do not disqualify.
         if (m.isSynthetic) return true
         if (m.name == "<init>" || m.name == "<clinit>") return true
@@ -70,7 +71,7 @@ class DataModelProvider : ClassPropertyProvider {
     }
 
     /** `getX()`/`isX()` with zero params and non-void return, matching a field. */
-    private fun isGetter(m: org.example.constellation.core.properties.MethodDecl, fields: Set<String>): Boolean {
+    private fun isGetter(m: MethodDecl, fields: Set<String>): Boolean {
         val prop = propertyName(m.name, "get", "is") ?: return false
         if (paramCount(m.descriptor) != 0) return false
         if (returnTypeIsVoid(m.descriptor)) return false
@@ -80,7 +81,7 @@ class DataModelProvider : ClassPropertyProvider {
     }
 
     /** `setX(v)` with exactly one param and void return, matching a field. */
-    private fun isSetter(m: org.example.constellation.core.properties.MethodDecl, fields: Set<String>): Boolean {
+    private fun isSetter(m: MethodDecl, fields: Set<String>): Boolean {
         val prop = propertyName(m.name, "set") ?: return false
         if (paramCount(m.descriptor) != 1) return false
         if (!returnTypeIsVoid(m.descriptor)) return false

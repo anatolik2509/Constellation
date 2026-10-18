@@ -1,4 +1,4 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
 import org.example.constellation.core.analyze.AnalysisRequest
 import org.example.constellation.core.analyze.ClassRoot
@@ -8,11 +8,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 
-class PropertyRegistryTest {
+class TraitRegistryTest {
 
     @Test
     fun `defaults contain the built-in data model provider`() {
-        val registry = PropertyRegistry.defaults()
+        val registry = TraitRegistry.defaults()
         assertTrue(registry.all().any { it.id == DataModel.ID })
         assertTrue(registry.all().all { p -> p.displayName.isNotBlank() })
     }
@@ -29,18 +29,18 @@ class PropertyRegistryTest {
         val graph = ProjectAnalyzer().analyze(
             AnalysisRequest(
                 listOf(ClassRoot(out, "fixture", "main")),
-                registry = PropertyRegistry.defaults().also { it.register(EverythingProvider) },
+                registry = TraitRegistry.defaults().also { it.register(EverythingProvider) },
             ),
         )
 
-        assertTrue(graph.nodes.first { it.id == "demo.A" }.properties.any { it.id.value == "test.everything" })
-        assertTrue(graph.nodes.first { it.id == "other.B" }.properties.none { it.id.value == "test.everything" })
+        assertTrue(graph.nodes.first { it.id == "demo.A" }.traits.any { it.id.value == "test.everything" })
+        assertTrue(graph.nodes.first { it.id == "other.B" }.traits.none { it.id.value == "test.everything" })
     }
 
     @Test
     fun `discover loads service-loader providers`() {
         // TestFixtureProvider is registered in test resources via META-INF/services
-        val registry = PropertyRegistry.discover()
+        val registry = TraitRegistry.discover()
         assertTrue(registry.all().any { it.id.value == "test.fixture.marker" })
     }
 }

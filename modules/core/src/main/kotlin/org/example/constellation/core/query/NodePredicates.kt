@@ -3,7 +3,7 @@ package org.example.constellation.core.query
 import org.example.constellation.core.model.ClassKind
 import org.example.constellation.core.model.ClassOrigin
 import org.example.constellation.core.model.Node
-import org.example.constellation.core.properties.PropertyId
+import org.example.constellation.core.traits.TraitId
 
 /** Ready-made node predicates; combine with `and`/`or`/`not`. */
 object NodePredicates {
@@ -26,12 +26,12 @@ object NodePredicates {
         origin is ClassOrigin.Project && origin.module in names
     }
 
-    fun hasProperty(id: PropertyId): NodePredicate = NodePredicate { node ->
-        node.properties.any { it.id == id }
+    fun hasTrait(id: TraitId): NodePredicate = NodePredicate { node ->
+        node.traits.any { it.id == id }
     }
 
-    fun hasAnyProperty(ids: Collection<PropertyId>): NodePredicate = NodePredicate { node ->
-        ids.any { id -> node.properties.any { it.id == id } }
+    fun hasAnyTrait(ids: Collection<TraitId>): NodePredicate = NodePredicate { node ->
+        ids.any { id -> node.traits.any { it.id == id } }
     }
 
     fun inPackage(vararg patterns: String): NodePredicate = NodePredicate { node ->

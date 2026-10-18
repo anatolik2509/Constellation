@@ -1,7 +1,7 @@
 package org.example.constellation.webui.server
 
 import org.example.constellation.core.model.Relation
-import org.example.constellation.core.properties.PropertyId
+import org.example.constellation.core.traits.TraitId
 import org.example.constellation.core.query.EdgePredicate
 import org.example.constellation.core.query.EdgePredicates
 import org.example.constellation.core.query.NodePredicate
@@ -25,7 +25,7 @@ object GraphQuery {
         var relations: Set<Relation>? = null
         var packages: List<String>? = null
         var excludedPackages: List<String>? = null
-        var excludedProperties: List<PropertyId>? = null
+        var excludedTraits: List<TraitId>? = null
 
         for (raw in query.split('&')) {
             val eq = raw.indexOf('=')
@@ -43,8 +43,8 @@ object GraphQuery {
                 "xpkgs" -> excludedPackages = value.split(',').map { it.trim() }
                     .filter { it.isNotEmpty() }.map { wirePackage(it) }
                     .takeIf { it.isNotEmpty() }
-                "xprops" -> excludedProperties = value.split(',').map { it.trim() }
-                    .filter { it.isNotEmpty() }.map { PropertyId(it) }
+                "xtraits" -> excludedTraits = value.split(',').map { it.trim() }
+                    .filter { it.isNotEmpty() }.map { TraitId(it) }
                     .takeIf { it.isNotEmpty() }
             }
         }
@@ -56,8 +56,8 @@ object GraphQuery {
         if (excludedPackages != null) {
             node = node and NodePredicates.notInPackage(*excludedPackages.toTypedArray())
         }
-        if (excludedProperties != null) {
-            node = node and !NodePredicates.hasAnyProperty(excludedProperties)
+        if (excludedTraits != null) {
+            node = node and !NodePredicates.hasAnyTrait(excludedTraits)
         }
         return node to (relations?.let { EdgePredicates.types(*it.toTypedArray()) } ?: EdgePredicates.all())
     }

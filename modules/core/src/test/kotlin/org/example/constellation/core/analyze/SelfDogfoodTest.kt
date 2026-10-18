@@ -34,7 +34,7 @@ class SelfDogfoodTest {
             "org.example.constellation.core.analyze.ProjectAnalyzer",
             "org.example.constellation.core.analyze.ClassScanner",
             "org.example.constellation.core.query.NodePredicates",
-            "org.example.constellation.core.properties.builtin.DataModelProvider",
+            "org.example.constellation.core.traits.builtin.DataModelProvider",
         )) {
             assertTrue(g.nodes.any { it.id == id }, "missing node $id")
         }

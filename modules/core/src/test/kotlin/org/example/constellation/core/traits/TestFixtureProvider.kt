@@ -1,14 +1,14 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
 /** Registered via META-INF/services in test resources — proves ServiceLoader discovery. */
-class TestFixtureProvider : ClassPropertyProvider {
-    override val id = PropertyId("test.fixture.marker")
+class TestFixtureProvider : ClassTraitProvider {
+    override val id = TraitId("test.fixture.marker")
     override val displayName = "Fixture marker"
 
-    override fun propertiesFor(ctx: ClassContext): ClassProperty? =
+    override fun traitFor(ctx: ClassContext): ClassTrait? =
         if (ctx.isInterface) Marker else null
 
-    object Marker : ClassProperty {
-        override val id = PropertyId("test.fixture.marker")
+    object Marker : ClassTrait {
+        override val id = TraitId("test.fixture.marker")
     }
 }

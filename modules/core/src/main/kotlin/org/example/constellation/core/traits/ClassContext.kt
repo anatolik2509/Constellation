@@ -1,9 +1,9 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
 import org.example.constellation.core.analyze.RawClassInfo
 
 /**
- * The only sanctioned technical surface: property providers may look at bytecode
+ * The only sanctioned technical surface: trait providers may look at bytecode
  * facts here, but nothing they return may leak into the model.
  * Constructed only by the analyzer.
  */

@@ -10,8 +10,8 @@ import org.example.constellation.core.model.Node
 import org.example.constellation.core.model.PrimitiveKind
 import org.example.constellation.core.model.Relation
 import org.example.constellation.core.model.TypeRef
-import org.example.constellation.core.properties.DataModel
-import org.example.constellation.core.properties.PropertyId
+import org.example.constellation.core.traits.DataModel
+import org.example.constellation.core.traits.TraitId
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -24,20 +24,20 @@ class PredicatesTest {
         kind: ClassKind = ClassKind.CLASS,
         origin: ClassOrigin = ClassOrigin.Project("app", "main"),
         pkg: String = "",
-        properties: List<org.example.constellation.core.properties.ClassProperty> = emptyList(),
+        traits: List<org.example.constellation.core.traits.ClassTrait> = emptyList(),
     ) = Node(
         id = id, kind = kind, origin = origin, pkg = pkg,
         simpleName = id.substringAfterLast('.'), sourceFile = null,
         declaredMethods = listOf(
             MethodSignature("x", listOf(TypeRef.Primitive(PrimitiveKind.INT)), TypeRef.Primitive(PrimitiveKind.VOID)),
         ),
-        properties = properties,
+        traits = traits,
     )
 
     private fun graph(): CodeGraph {
         val nodes = listOf(
             node("app.Service", pkg = "app"),
-            node("app.Dto", pkg = "app", properties = listOf(DataModel(DataModel.CarrierKind.JAVA_BEAN, listOf("a")))),
+            node("app.Dto", pkg = "app", traits = listOf(DataModel(DataModel.CarrierKind.JAVA_BEAN, listOf("a")))),
             node("app.Api", ClassKind.INTERFACE, pkg = "app"),
             node("app.Marker", ClassKind.ANNOTATION, pkg = "app"),
             node("app.FooTest", origin = ClassOrigin.Project("app", "test"), pkg = "app"),
@@ -73,8 +73,8 @@ class PredicatesTest {
     }
 
     @Test
-    fun `hasProperty covers the old pojo toggle`() {
-        val out = graph().filter(nodes = !NodePredicates.hasProperty(DataModel.ID))
+    fun `hasTrait covers the old pojo toggle`() {
+        val out = graph().filter(nodes = !NodePredicates.hasTrait(DataModel.ID))
         assertFalse(out.nodes.any { it.id == "app.Dto" })
         assertTrue(out.nodes.any { it.id == "app.Service" })
         assertFalse(out.edges.any { it.from == "app.Dto" || it.to == "app.Dto" })
@@ -100,7 +100,7 @@ class PredicatesTest {
     @Test
     fun `combinators and packages`() {
         val out = graph().filter(
-            nodes = NodePredicates.inPackage("app") and !NodePredicates.hasProperty(DataModel.ID) or NodePredicates.external(),
+            nodes = NodePredicates.inPackage("app") and !NodePredicates.hasTrait(DataModel.ID) or NodePredicates.external(),
         )
         assertTrue(out.nodes.any { it.id == "app.Service" })
         assertFalse(out.nodes.any { it.id == "app.Dto" })
@@ -119,8 +119,8 @@ class PredicatesTest {
     }
 
     @Test
-    fun `predicate on unknown property id matches nothing`() {
-        val out = graph().filter(nodes = NodePredicates.hasProperty(PropertyId("nope.nope")))
+    fun `predicate on unknown trait id matches nothing`() {
+        val out = graph().filter(nodes = NodePredicates.hasTrait(TraitId("nope.nope")))
         assertTrue(out.nodes.isEmpty())
     }
 }

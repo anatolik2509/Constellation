@@ -1,7 +1,7 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
-/** Stable property identifier, owner-prefixed: `constellation.data-model`. */
+/** Stable trait identifier, owner-prefixed: `constellation.data-model`. */
 @JvmInline
-value class PropertyId(val value: String) {
+value class TraitId(val value: String) {
     override fun toString(): String = value
 }

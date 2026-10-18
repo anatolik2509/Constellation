@@ -1,4 +1,4 @@
-package org.example.constellation.core.properties
+package org.example.constellation.core.traits
 
 import org.example.constellation.core.analyze.AnalysisRequest
 import org.example.constellation.core.analyze.ClassRoot
@@ -24,7 +24,7 @@ class DataModelTest {
         return ProjectAnalyzer().analyze(AnalysisRequest(listOf(ClassRoot(out, "fixture", "main"))))
     }
 
-    private fun dataModel(n: Node): DataModel? = n.properties.filterIsInstance<DataModel>().firstOrNull()
+    private fun dataModel(n: Node): DataModel? = n.traits.filterIsInstance<DataModel>().firstOrNull()
 
     @Test
     fun `java bean is a data model`() {
@@ -82,10 +82,10 @@ class DataModelTest {
     }
 
     @Test
-    fun `properties are sorted by id`() {
+    fun `traits are sorted by id`() {
         val g = analyze()
         assertTrue(
-            g.nodes.all { n -> n.properties.map { it.id.value } == n.properties.map { it.id.value }.sorted() },
+            g.nodes.all { n -> n.traits.map { it.id.value } == n.traits.map { it.id.value }.sorted() },
         )
     }
 }

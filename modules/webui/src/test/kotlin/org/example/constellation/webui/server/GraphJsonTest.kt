@@ -10,7 +10,7 @@ import org.example.constellation.core.model.Node
 import org.example.constellation.core.model.PrimitiveKind
 import org.example.constellation.core.model.Relation
 import org.example.constellation.core.model.TypeRef
-import org.example.constellation.core.properties.DataModel
+import org.example.constellation.core.traits.DataModel
 import org.example.constellation.core.query.NodePredicates
 import org.example.constellation.core.query.and
 import org.example.constellation.core.query.filter
@@ -35,7 +35,7 @@ class GraphJsonTest {
                 "demo.Dto", ClassKind.CLASS,
                 origin = ClassOrigin.Project("app", "main"),
                 pkg = "demo", simpleName = "Dto",
-                properties = listOf(DataModel(DataModel.CarrierKind.KOTLIN_DATA_CLASS, listOf("a", "b"))),
+                traits = listOf(DataModel(DataModel.CarrierKind.KOTLIN_DATA_CLASS, listOf("a", "b"))),
             ),
             Node(
                 "demo.IFace", ClassKind.INTERFACE,
@@ -106,10 +106,10 @@ class GraphJsonTest {
     @Test
     fun `categories compose through core predicates`() {
         val g = tinyGraph()
-        val onlyData = g.filter(nodes = NodePredicates.hasProperty(DataModel.ID))
+        val onlyData = g.filter(nodes = NodePredicates.hasTrait(DataModel.ID))
         assertEquals(listOf("demo.Dto"), onlyData.nodes.map { it.id })
         val noData = g.filter(
-            nodes = !NodePredicates.hasProperty(DataModel.ID) and NodePredicates.kind(ClassKind.CLASS),
+            nodes = !NodePredicates.hasTrait(DataModel.ID) and NodePredicates.kind(ClassKind.CLASS),
         )
         assertTrue(noData.nodes.none { it.id == "demo.Dto" })
     }
