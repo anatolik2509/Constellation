@@ -40,6 +40,14 @@ class GraphQueryTest {
     }
 
     @Test
+    fun `edges parameter accepts CALLS_STATIC`() {
+        val (_, edges) = GraphQuery.parse("edges=CALLS_STATIC")
+        assertTrue(edges.test(Edge("a", "b", Relation.CALLS_STATIC)))
+        assertTrue(!edges.test(Edge("a", "b", Relation.CALLS)))
+        assertTrue(!edges.test(Edge("a", "b", Relation.IMPLEMENTS)))
+    }
+
+    @Test
     fun `test category selects the test source set`() {
         val (nodes, _) = GraphQuery.parse("kinds=TEST")
         val test = node("app.FooTest", origin = ClassOrigin.Project("app", "test"))

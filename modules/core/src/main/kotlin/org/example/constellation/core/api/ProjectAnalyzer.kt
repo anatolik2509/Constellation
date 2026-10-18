@@ -172,14 +172,15 @@ class ProjectAnalyzer {
             }
         }
 
-        /** Aggregates method calls of [caller] per target class, self-edges excluded. */
+        /** Aggregates method calls of [caller] per target class and dispatch, self-edges excluded. */
         fun addCalls(caller: String, info: RawClassInfo) {
             for (call in info.calls) {
                 if (call.owner == caller || call.owner.startsWith("[")) continue
                 if (isExcludedClassName(call.owner)) continue
                 // super(...) duplicates the EXTENDS edge — drop it.
                 if (call.name == "<init>" && call.owner == info.superName) continue
-                callMethods.getOrPut(CallKey(caller, call.owner)) { methodSet() } +=
+                val relation = if (call.isStatic) Relation.CALLS_STATIC else Relation.CALLS
+                callMethods.getOrPut(CallKey(caller, call.owner, relation)) { methodSet() } +=
                     DescriptorParser.parseMethod(call.name, call.descriptor)
                 externalCandidate(call.owner)
             }
@@ -194,7 +195,7 @@ class ProjectAnalyzer {
                 .toList()
 
         private fun callEdges(): List<Edge> =
-            callMethods.map { (key, methods) -> Edge(key.from, key.to, Relation.CALLS, methods.toList()) }
+            callMethods.map { (key, methods) -> Edge(key.from, key.to, key.relation, methods.toList()) }
 
         private fun externalCandidate(internal: String) {
             if (internal !in analyzedNames && !isExcludedClassName(internal)) referencedExternals += internal
@@ -204,7 +205,7 @@ class ProjectAnalyzer {
             sortedSetOf(compareBy({ it.name }, { it.renderFull() }))
     }
 
-    private data class CallKey(val from: String, val to: String)
+    private data class CallKey(val from: String, val to: String, val relation: Relation)
 
     companion object {
         private const val OBJECT = "java/lang/Object"

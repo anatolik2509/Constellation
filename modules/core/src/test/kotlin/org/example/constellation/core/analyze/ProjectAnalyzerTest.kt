@@ -120,6 +120,54 @@ class ProjectAnalyzerTest {
     }
 
     @Test
+    fun `static calls become CALLS_STATIC edges`() {
+        val g = analyze()
+        assertNotNull(edge(g, "demo.stat.StatCaller", "demo.stat.FileUtils", Relation.CALLS_STATIC))
+        assertNull(edge(g, "demo.stat.StatCaller", "demo.stat.FileUtils", Relation.CALLS))
+        assertNotNull(edge(g, "demo.stat.StatCaller", "demo.stat.Counter", Relation.CALLS_STATIC))
+    }
+
+    @Test
+    fun `method reference to a static method is CALLS_STATIC`() {
+        val g = analyze()
+        val e = edge(g, "demo.stat.StatCaller", "demo.stat.FileUtils", Relation.CALLS_STATIC)
+        assertNotNull(e)
+        // direct call FileUtils.ext(...) and the FileUtils::ext reference aggregate into one edge
+        assertTrue(e!!.methods.any { it.render() == "ext(String): String" })
+    }
+
+    @Test
+    fun `interface dispatch stays CALLS`() {
+        val g = analyze()
+        assertNotNull(edge(g, "demo.stat.StatCaller", "java.util.function.Function", Relation.CALLS))
+    }
+
+    @Test
+    fun `external static call is CALLS_STATIC`() {
+        val g = analyze()
+        assertNotNull(edge(g, "demo.animal.DogService", "java.lang.String", Relation.CALLS_STATIC))
+    }
+
+    @Test
+    fun `a pair can carry both CALLS and CALLS_STATIC`() {
+        val g = analyze()
+        assertTrue(
+            edge(g, "demo.stat.StatCaller", "demo.app.AppException", Relation.CALLS_STATIC)
+                ?.methods?.any { it.name == "wrap" } == true,
+        )
+        assertTrue(
+            edge(g, "demo.stat.StatCaller", "demo.app.AppException", Relation.CALLS)
+                ?.methods?.any { it.name == "<init>" } == true,
+        )
+    }
+
+    @Test
+    fun `no clinit call edges`() {
+        val g = analyze()
+        assertTrue(g.edges.flatMap { it.methods }.none { it.name == "<clinit>" })
+    }
+
+    @Test
     fun `referenced classes outside roots become external`() {
         val g = analyze()
         val ext = node(g, "extlib.Util")

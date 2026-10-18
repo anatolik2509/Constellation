@@ -14,6 +14,7 @@ const CATEGORIES = [
 ];
 const EDGE_TYPES = [
   { id: 'CALLS', label: 'calls', color: '#9085e9', width: 1.5, opacity: 0.6, dashed: false },
+  { id: 'CALLS_STATIC', label: 'static calls', color: '#af46a9', width: 1.5, opacity: 0.6, dashed: true },
   { id: 'EXTENDS', label: 'extends', color: '#e66767', width: 2, opacity: 1, dashed: false },
   { id: 'IMPLEMENTS', label: 'implements', color: '#008300', width: 2, opacity: 1, dashed: true },
 ];
@@ -94,7 +95,7 @@ function buildFilterPanel() {
   const edgesEl = document.getElementById('edgeFilters');
   edgesEl.innerHTML = EDGE_TYPES.map((t) => `
     <label><input type="checkbox" data-edge="${t.id}" ${state.edgeTypes.has(t.id) ? 'checked' : ''}>
-      <span class="line-sample ${t.dashed ? 'dashed' : ''} ${t.id === 'CALLS' ? 'thin' : ''}" style="--sw:${t.color}"></span>
+      <span class="line-sample ${t.dashed ? 'dashed' : ''} ${['CALLS', 'CALLS_STATIC'].includes(t.id) ? 'thin' : ''}" style="--sw:${t.color}"></span>
       <span class="name">${t.label}</span>
       <span class="count" data-count="edge-${t.id}"></span></label>`).join('');
   edgesEl.addEventListener('change', (e) => {
@@ -565,7 +566,7 @@ function showNodeDetails(id) {
       <div class="edge-head"><span class="dir">${dir === 'out' ? '→' : '←'}</span>
         <span class="other">${escapeHtml(dir === 'out' ? e.to : e.from)}</span>
         <span class="dir">${TYPE_LABEL[e.type]}</span></div>
-      ${e.type === 'CALLS' && e.methods.length ? `<div class="methods">${e.methods.map((m) => escapeHtml(m.display)).join(', ')}</div>` : ''}
+      ${(e.type === 'CALLS' || e.type === 'CALLS_STATIC') && e.methods.length ? `<div class="methods">${e.methods.map((m) => escapeHtml(m.display)).join(', ')}</div>` : ''}
     </div>`).join('');
 
   sb.innerHTML = `

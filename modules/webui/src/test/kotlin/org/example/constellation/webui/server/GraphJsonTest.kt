@@ -83,6 +83,7 @@ class GraphJsonTest {
         val json = GraphJson.meta(tinyGraph())
         assertTrue(json.contains("\"analyzedClasses\":3"))
         assertTrue(json.contains("\"CALLS\":1"))
+        assertTrue(json.contains("\"CALLS_STATIC\":0"))
         assertTrue(json.contains("\"DATA\":1"))
         assertTrue(json.contains("\"constellation.data-model\""))
         assertTrue(json.contains("\"displayName\":\"Data model\""))

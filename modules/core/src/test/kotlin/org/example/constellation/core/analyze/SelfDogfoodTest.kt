@@ -62,12 +62,13 @@ class SelfDogfoodTest {
         // `ProjectAnalyzer$analyze$$inlined$sortedBy$1`-style classes. The analyzer's own
         // bytecode never calls ComparisonsKt.compareValues directly — the edge below exists
         // only if the analyzer attributed the excluded comparator classes via EnclosingMethod.
+        // kotlinc dispatches compareValues with invokestatic, so the edge is CALLS_STATIC.
         val e = graph.edges.firstOrNull {
             it.from == "org.example.constellation.core.api.ProjectAnalyzer" &&
                 it.to == "kotlin.comparisons.ComparisonsKt" &&
-                it.type == Relation.CALLS
+                it.type == Relation.CALLS_STATIC
         }
-        assertNotNull(e, "no ProjectAnalyzer -> ComparisonsKt call edge")
+        assertNotNull(e, "no ProjectAnalyzer -> ComparisonsKt static-call edge")
         assertTrue(e!!.methods.any { it.name == "compareValues" })
     }
 }

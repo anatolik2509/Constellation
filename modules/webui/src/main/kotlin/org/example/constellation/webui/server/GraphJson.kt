@@ -128,7 +128,7 @@ object GraphJson {
         put("from", e.from)
         put("to", e.to)
         put("type", e.type.name)
-        if (e.type == Relation.CALLS) {
+        if (e.type == Relation.CALLS || e.type == Relation.CALLS_STATIC) {
             putArray("methods").addAll(e.methods.map(::methodRefJson))
         }
     }

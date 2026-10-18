@@ -328,4 +328,23 @@ val RICH_FIXTURE: Map<String, String> = mapOf(
             public static AppException wrap(Throwable t) { return new AppException(String.valueOf(t)); }
         }
     """.trimIndent(),
+
+    /** Static vs instance dispatch: invokestatic, method references to statics, constructor calls. */
+    "demo/stat/StatCaller.java" to """
+        package demo.stat;
+        import demo.app.AppException;
+        import java.util.function.Function;
+        public class StatCaller {
+            public void run() {
+                FileUtils.ext("a.txt");
+                Counter.next();
+                AppException.wrap(new RuntimeException("x"));
+                RuntimeException direct = new RuntimeException("y");
+                AppException wrapped = new AppException(direct.getMessage());
+                Function<String, String> ref = FileUtils::ext;
+                ref.apply("b.txt");
+                if (wrapped.getMessage().isEmpty()) { throw wrapped; }
+            }
+        }
+    """.trimIndent(),
 )

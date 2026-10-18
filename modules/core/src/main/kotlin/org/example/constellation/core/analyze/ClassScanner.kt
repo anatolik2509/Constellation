@@ -131,7 +131,7 @@ internal class ClassScanner {
                 ) {
                     // Array owners (`[Ljava/lang/Object;.clone`) have no class node.
                     if (!owner.startsWith("[")) {
-                        calls += RawCall(owner, name, descriptor)
+                        calls += RawCall(owner, name, descriptor, isStatic = opcode == Opcodes.INVOKESTATIC)
                     }
                 }
 
@@ -145,7 +145,7 @@ internal class ClassScanner {
                     if (bootstrapMethodHandle?.owner != LAMBDA_METAFACTORY) return
                     for (arg in bootstrapMethodArguments) {
                         if (arg !is Handle || !isMethodHandle(arg) || arg.owner.startsWith("[")) continue
-                        calls += RawCall(arg.owner, arg.name, arg.desc)
+                        calls += RawCall(arg.owner, arg.name, arg.desc, isStatic = arg.tag == Opcodes.H_INVOKESTATIC)
                     }
                 }
             }

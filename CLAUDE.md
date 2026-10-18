@@ -63,7 +63,9 @@ Toolchain: Kotlin 2.4.20, Gradle wrapper 9.6, JVM toolchain 21.
   `internal` в `traits/builtin/`. Провайдер автоматически попадает в JSON
   (`traits` у вершин, `traitCatalog` в meta) и в панель фильтров UI.
 - `analyze/` — единственное место, где живёт ASM (сканер, Raw*-типы,
-  `DescriptorParser`).
+  `DescriptorParser`). `invokestatic` (и method references на static) даёт
+  `Relation.CALLS_STATIC`, остальные вызовы — `CALLS`; пара классов может иметь
+  оба ребра.
 
 ### webui — HTTP-сервер и страница
 
