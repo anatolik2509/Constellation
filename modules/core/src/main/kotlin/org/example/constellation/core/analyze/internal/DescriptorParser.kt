@@ -1,8 +1,8 @@
 package org.example.constellation.core.analyze.internal
 
-import org.example.constellation.core.model.MethodSignature
-import org.example.constellation.core.model.PrimitiveKind
-import org.example.constellation.core.model.TypeRef
+import org.example.constellation.core.api.model.MethodSignature
+import org.example.constellation.core.api.model.PrimitiveKind
+import org.example.constellation.core.api.model.TypeRef
 
 /**
  * Parses raw JVM method descriptors (`(Ljava/lang/String;[I)V`) into

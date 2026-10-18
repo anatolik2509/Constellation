@@ -15,7 +15,7 @@ Gradle-плагин `org.example.constellation` (задача `constellation` в
 ./gradlew build                    # сборка + все тесты
 ./gradlew test -PskipPerfSmoke     # тесты без perf-smoke (тег perf-smoke: прогон на kotlin-stdlib)
 ./gradlew :core:test               # тесты одного модуля
-./gradlew :core:test --tests "org.example.constellation.core.query.PredicatesTest"   # один тест-класс
+./gradlew :core:test --tests "org.example.constellation.core.api.query.PredicatesTest"   # один тест-класс
 ```
 
 Догфуд на самом репозитории (сначала нужна компиляция — `./gradlew classes`):
@@ -41,23 +41,29 @@ Toolchain: Kotlin 2.4.20, Gradle wrapper 9.6, JVM toolchain 21.
 
 ### core — закрытая модель кода, не знает про UI/HTTP/Gradle
 
-- `model/` — замкнутая модель: `Node`, `Edge`, `CodeGraph`. Всё отсортировано по
+Единственный пакет, доступный внешним потребителям, — `core.api` (всё вне него
+помечено `internal`, компилятор запрещает доступ извне модуля):
+
+- `api/` — точка входа анализа: `ProjectAnalyzer().analyze(AnalysisRequest(roots,
+  registry))`. `ClassRoot` несёт метки module/source set от вызывающего (плагин
+  знает их из Gradle; path-sniffing только в dev-входе `DevMain`). Классы `Foo$bar$1`
+  (лямбды, анонимные объекты) не становятся вершинами — их call-рёбра
+  атрибутируются enclosing-классу через `EnclosingMethod` (`resolveOwners`).
+- `api/model/` — замкнутая модель: `Node`, `Edge`, `CodeGraph`. Всё отсортировано по
   построению, поэтому JSON детерминирован — сохраняйте это. `MethodSignature` —
   читаемые сигнатуры (`zip(String, int[]): int`); JVM-дескрипторы существуют только
   внутри анализатора (`analyze/internal/DescriptorParser`).
-- `analyze/` — единственное место, где живёт ASM. Вход:
-  `ProjectAnalyzer().analyze(AnalysisRequest(roots, registry))`. `ClassRoot` несёт
-  метки module/source set от вызывающего (плагин знает их из Gradle; path-sniffing
-  только в dev-входе `DevMain`). Классы `Foo$bar$1` (лямбды, анонимные объекты) не
-  становятся вершинами — их call-рёбра атрибутируются enclosing-классу через
-  `EnclosingMethod` (`resolveOwners`).
-- `query/` — компонуемые предикаты `NodePredicate`/`EdgePredicate` + фабрики и
+- `api/query/` — компонуемые предикаты `NodePredicate`/`EdgePredicate` + фабрики и
   комбинаторы `and`/`or`/`not`, `CodeGraph.filter`. Логика фильтрации живёт только
   здесь; HTTP-слой лишь компонует предикаты из query-параметров.
-- `traits/` — трейты-плагины: `TraitRegistry` (built-ins + ServiceLoader
-  через `META-INF/services/...ClassTraitProvider`), built-ins `DataModel` и
-  `StaticComponent` в `traits/builtin/`. Сторонний провайдер автоматически
-  попадает в JSON (`traits` у вершин, `traitCatalog` в meta) и в панель фильтров UI.
+- `api/traits/` — значения трейтов и `TraitRegistry` (built-ins + ServiceLoader
+  через `META-INF/services/...ClassTraitProvider`); `api/traits/spi/` — контракт
+  для сторонних провайдеров (`ClassTraitProvider`, `ClassContext`,
+  `MethodDecl`/`StaticFieldDecl`). Built-ins `DataModel` и `StaticComponent` —
+  `internal` в `traits/builtin/`. Провайдер автоматически попадает в JSON
+  (`traits` у вершин, `traitCatalog` в meta) и в панель фильтров UI.
+- `analyze/` — единственное место, где живёт ASM (сканер, Raw*-типы,
+  `DescriptorParser`).
 
 ### webui — HTTP-сервер и страница
 

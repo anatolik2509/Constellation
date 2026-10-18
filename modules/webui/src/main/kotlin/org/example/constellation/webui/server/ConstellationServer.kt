@@ -2,8 +2,8 @@ package org.example.constellation.webui.server
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
-import org.example.constellation.core.model.CodeGraph
-import org.example.constellation.core.query.filter
+import org.example.constellation.core.api.model.CodeGraph
+import org.example.constellation.core.api.query.filter
 import java.net.InetSocketAddress
 import java.net.URI
 import java.util.concurrent.Executors

@@ -1,6 +1,10 @@
 package org.example.constellation.core.analyze
 
-import org.example.constellation.core.model.Relation
+import org.example.constellation.core.api.AnalysisRequest
+import org.example.constellation.core.api.ClassRoot
+import org.example.constellation.core.api.ProjectAnalyzer
+
+import org.example.constellation.core.api.model.Relation
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -31,15 +35,15 @@ class SelfDogfoodTest {
         assertTrue(g.stats.parseErrors.isEmpty(), "unexpected parse errors: ${g.stats.parseErrors.take(3)}")
 
         for (id in listOf(
-            "org.example.constellation.core.analyze.ProjectAnalyzer",
+            "org.example.constellation.core.api.ProjectAnalyzer",
             "org.example.constellation.core.analyze.ClassScanner",
-            "org.example.constellation.core.query.NodePredicates",
+            "org.example.constellation.core.api.query.NodePredicates",
             "org.example.constellation.core.traits.builtin.DataModelProvider",
         )) {
             assertTrue(g.nodes.any { it.id == id }, "missing node $id")
         }
         assertTrue(
-            g.edges.any { it.from == "org.example.constellation.core.analyze.ProjectAnalyzer" },
+            g.edges.any { it.from == "org.example.constellation.core.api.ProjectAnalyzer" },
             "no call edges out of ProjectAnalyzer",
         )
     }
@@ -48,8 +52,8 @@ class SelfDogfoodTest {
     fun `origin labels flow from the root`() {
         val g = graph
         val analyzer = g.nodes.first { it.id.endsWith("ProjectAnalyzer") }
-        assertEquals("core", (analyzer.origin as org.example.constellation.core.model.ClassOrigin.Project).module)
-        assertEquals("main", (analyzer.origin as org.example.constellation.core.model.ClassOrigin.Project).sourceSet)
+        assertEquals("core", (analyzer.origin as org.example.constellation.core.api.model.ClassOrigin.Project).module)
+        assertEquals("main", (analyzer.origin as org.example.constellation.core.api.model.ClassOrigin.Project).sourceSet)
     }
 
     @Test
@@ -59,7 +63,7 @@ class SelfDogfoodTest {
         // bytecode never calls ComparisonsKt.compareValues directly — the edge below exists
         // only if the analyzer attributed the excluded comparator classes via EnclosingMethod.
         val e = graph.edges.firstOrNull {
-            it.from == "org.example.constellation.core.analyze.ProjectAnalyzer" &&
+            it.from == "org.example.constellation.core.api.ProjectAnalyzer" &&
                 it.to == "kotlin.comparisons.ComparisonsKt" &&
                 it.type == Relation.CALLS
         }

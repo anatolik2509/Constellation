@@ -1,8 +1,8 @@
 package org.example.constellation.plugin
 
-import org.example.constellation.core.analyze.AnalysisRequest
-import org.example.constellation.core.analyze.ClassRoot
-import org.example.constellation.core.analyze.ProjectAnalyzer
+import org.example.constellation.core.api.AnalysisRequest
+import org.example.constellation.core.api.ClassRoot
+import org.example.constellation.core.api.ProjectAnalyzer
 import org.example.constellation.webui.server.ConstellationServer
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection

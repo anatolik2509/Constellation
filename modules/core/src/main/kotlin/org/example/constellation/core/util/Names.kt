@@ -1,6 +1,6 @@
 package org.example.constellation.core.util
 
-object Names {
+internal object Names {
     /** `com/foo/Bar$Baz` -> `com.foo.Bar$Baz`. */
     fun toDotName(internal: String): String = internal.replace('/', '.')
 

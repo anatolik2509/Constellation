@@ -1,13 +1,13 @@
 package org.example.constellation.webui.server
 
-import org.example.constellation.core.model.Relation
-import org.example.constellation.core.traits.TraitId
-import org.example.constellation.core.query.EdgePredicate
-import org.example.constellation.core.query.EdgePredicates
-import org.example.constellation.core.query.NodePredicate
-import org.example.constellation.core.query.NodePredicates
-import org.example.constellation.core.query.and
-import org.example.constellation.core.query.not
+import org.example.constellation.core.api.model.Relation
+import org.example.constellation.core.api.traits.TraitId
+import org.example.constellation.core.api.query.EdgePredicate
+import org.example.constellation.core.api.query.EdgePredicates
+import org.example.constellation.core.api.query.NodePredicate
+import org.example.constellation.core.api.query.NodePredicates
+import org.example.constellation.core.api.query.and
+import org.example.constellation.core.api.query.not
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 

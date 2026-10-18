@@ -1,12 +1,16 @@
 package org.example.constellation.core.analyze
 
-import org.example.constellation.core.model.ClassKind
-import org.example.constellation.core.model.ClassOrigin
-import org.example.constellation.core.model.CodeGraph
-import org.example.constellation.core.model.Edge
-import org.example.constellation.core.model.Node
-import org.example.constellation.core.model.Relation
-import org.example.constellation.core.traits.DataModel
+import org.example.constellation.core.api.AnalysisRequest
+import org.example.constellation.core.api.ClassRoot
+import org.example.constellation.core.api.ProjectAnalyzer
+import org.example.constellation.core.api.traits.DataModel
+
+import org.example.constellation.core.api.model.ClassKind
+import org.example.constellation.core.api.model.ClassOrigin
+import org.example.constellation.core.api.model.CodeGraph
+import org.example.constellation.core.api.model.Edge
+import org.example.constellation.core.api.model.Node
+import org.example.constellation.core.api.model.Relation
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull

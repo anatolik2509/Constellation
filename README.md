@@ -82,7 +82,7 @@ API: `GET /api/graph?kinds=CLASS,DATA&edges=CALLS&pkgs=com.foo&xpkgs=java.*`,
 
 | Модуль | Ответственность |
 |---|---|
-| `modules/core` | **закрытая модель кода** (`model/`), компонуемые предикаты (`query/`), система трейтов с открытым реестром провайдеров (`traits/`), анализатор (`analyze/`: ASM живёт только здесь). Не знает про UI, HTTP и Gradle |
+| `modules/core` | **закрытая модель кода**, компонуемые предикаты, система трейтов с открытым реестром провайдеров, анализатор (ASM живёт только здесь). Публичный контур — единственный пакет `core.api` (с подпакетами `model`/`query`/`traits`/`traits.spi`); всё остальное — `internal`. Не знает про UI, HTTP и Gradle |
 | `modules/webui` | встраиваемый HTTP-сервер (JDK `HttpServer`), JSON-API, веб-страница с cytoscape.js (вендорена, без CDN) |
 | `modules/gradle-plugin` | Gradle-плагин `org.example.constellation`: задача `constellation`, зависит от компиляции, анализирует её результаты |
 

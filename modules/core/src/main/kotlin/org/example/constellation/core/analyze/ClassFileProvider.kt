@@ -1,5 +1,6 @@
 package org.example.constellation.core.analyze
 
+import org.example.constellation.core.api.ClassRoot
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.stream.Collectors
@@ -9,9 +10,9 @@ import java.util.stream.Collectors
  * projects with sources, where compiled output lives in directories — running on
  * jars is not a supported case.
  */
-class ClassFileProvider(private val roots: List<ClassRoot>) {
+internal class ClassFileProvider(private val roots: List<ClassRoot>) {
 
-    class Entry(val root: ClassRoot, val origin: String, val bytes: ByteArray)
+    internal class Entry(val root: ClassRoot, val origin: String, val bytes: ByteArray)
 
     /** Deterministic: roots in given order; directory walks sorted by path. */
     fun entries(): List<Entry> = roots.flatMap(::expand)

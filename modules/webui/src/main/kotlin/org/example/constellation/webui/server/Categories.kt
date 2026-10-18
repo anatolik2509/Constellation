@@ -1,12 +1,12 @@
 package org.example.constellation.webui.server
 
-import org.example.constellation.core.model.ClassKind
-import org.example.constellation.core.model.Node
-import org.example.constellation.core.traits.DataModel
-import org.example.constellation.core.query.NodePredicate
-import org.example.constellation.core.query.NodePredicates
-import org.example.constellation.core.query.and
-import org.example.constellation.core.query.not
+import org.example.constellation.core.api.model.ClassKind
+import org.example.constellation.core.api.model.Node
+import org.example.constellation.core.api.traits.DataModel
+import org.example.constellation.core.api.query.NodePredicate
+import org.example.constellation.core.api.query.NodePredicates
+import org.example.constellation.core.api.query.and
+import org.example.constellation.core.api.query.not
 
 /**
  * The UI's category palette: display categories mapped to core predicates.

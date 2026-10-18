@@ -1,10 +1,10 @@
 package org.example.constellation.core.traits.builtin
 
-import org.example.constellation.core.traits.ClassContext
-import org.example.constellation.core.traits.ClassTrait
-import org.example.constellation.core.traits.ClassTraitProvider
-import org.example.constellation.core.traits.StaticComponent
-import org.example.constellation.core.traits.TraitId
+import org.example.constellation.core.api.traits.spi.ClassContext
+import org.example.constellation.core.api.traits.ClassTrait
+import org.example.constellation.core.api.traits.spi.ClassTraitProvider
+import org.example.constellation.core.api.traits.StaticComponent
+import org.example.constellation.core.api.traits.TraitId
 
 /**
  * Built-in [StaticComponent] detection. Carriers, by what the bytecode shows:
@@ -15,7 +15,7 @@ import org.example.constellation.core.traits.TraitId
  * STATIC_HOLDER — nothing of its own but static members and it inherits nothing
  * either (Kotlin file facades, utility and constants-only classes).
  */
-class StaticComponentProvider : ClassTraitProvider {
+internal class StaticComponentProvider : ClassTraitProvider {
 
     override val id: TraitId = StaticComponent.ID
     override val displayName: String = "Static component"

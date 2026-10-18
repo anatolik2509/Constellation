@@ -4,14 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
-import org.example.constellation.core.model.ClassOrigin
-import org.example.constellation.core.model.CodeGraph
-import org.example.constellation.core.model.Edge
-import org.example.constellation.core.model.MethodSignature
-import org.example.constellation.core.model.Node
-import org.example.constellation.core.model.Relation
-import org.example.constellation.core.traits.ClassTrait
-import org.example.constellation.core.traits.DataModel
+import org.example.constellation.core.api.model.ClassOrigin
+import org.example.constellation.core.api.model.CodeGraph
+import org.example.constellation.core.api.model.Edge
+import org.example.constellation.core.api.model.MethodSignature
+import org.example.constellation.core.api.model.Node
+import org.example.constellation.core.api.model.Relation
+import org.example.constellation.core.api.traits.ClassTrait
+import org.example.constellation.core.api.traits.DataModel
 
 /** Pure JSON rendering of the graph and its meta information. */
 object GraphJson {
@@ -22,7 +22,7 @@ object GraphJson {
     /** Provider display names, when the providers are on this classpath. */
     private val displayNames: Map<String, String> by lazy {
         runCatching {
-            org.example.constellation.core.traits.TraitRegistry.discover()
+            org.example.constellation.core.api.traits.TraitRegistry.discover()
                 .all().associate { it.id.value to it.displayName }
         }.getOrDefault(emptyMap())
     }
@@ -120,7 +120,7 @@ object GraphJson {
                 put("carrier", t.carrier.name)
                 putArray("components").addAll(t.components.map(json::textNode))
             }
-            is org.example.constellation.core.traits.StaticComponent -> put("carrier", t.carrier.name)
+            is org.example.constellation.core.api.traits.StaticComponent -> put("carrier", t.carrier.name)
         }
     }
 

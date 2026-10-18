@@ -1,6 +1,6 @@
 package org.example.constellation.plugin
 
-import org.example.constellation.core.analyze.ClassRoot
+import org.example.constellation.core.api.ClassRoot
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.SourceSetContainer

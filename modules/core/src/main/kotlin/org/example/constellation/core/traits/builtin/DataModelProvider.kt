@@ -1,17 +1,17 @@
 package org.example.constellation.core.traits.builtin
 
-import org.example.constellation.core.traits.ClassContext
-import org.example.constellation.core.traits.ClassTrait
-import org.example.constellation.core.traits.ClassTraitProvider
-import org.example.constellation.core.traits.DataModel
-import org.example.constellation.core.traits.MethodDecl
-import org.example.constellation.core.traits.TraitId
+import org.example.constellation.core.api.traits.spi.ClassContext
+import org.example.constellation.core.api.traits.ClassTrait
+import org.example.constellation.core.api.traits.spi.ClassTraitProvider
+import org.example.constellation.core.api.traits.DataModel
+import org.example.constellation.core.api.traits.spi.MethodDecl
+import org.example.constellation.core.api.traits.TraitId
 
 /**
  * Built-in [DataModel] detection: the class is a value carrier rather than behavior.
  * Carrier priority: ENUM > JAVA_RECORD > KOTLIN_DATA_CLASS > JAVA_BEAN.
  */
-class DataModelProvider : ClassTraitProvider {
+internal class DataModelProvider : ClassTraitProvider {
 
     override val id: TraitId = DataModel.ID
     override val displayName: String = "Data model"

@@ -1,12 +1,12 @@
 package org.example.constellation.webui.server
 
-import org.example.constellation.core.model.ClassKind
-import org.example.constellation.core.model.ClassOrigin
-import org.example.constellation.core.model.CodeGraph
-import org.example.constellation.core.model.Edge
-import org.example.constellation.core.model.GraphStats
-import org.example.constellation.core.model.Node
-import org.example.constellation.core.model.Relation
+import org.example.constellation.core.api.model.ClassKind
+import org.example.constellation.core.api.model.ClassOrigin
+import org.example.constellation.core.api.model.CodeGraph
+import org.example.constellation.core.api.model.Edge
+import org.example.constellation.core.api.model.GraphStats
+import org.example.constellation.core.api.model.Node
+import org.example.constellation.core.api.model.Relation
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

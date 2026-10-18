@@ -5,7 +5,7 @@ package org.example.constellation.core.query
  * `com.foo` and `com.foo.*` are equivalent; `*` within a segment matches any
  * characters except `.` (so `com.foobar` never matches `com.foo`).
  */
-object PackageMatcher {
+internal object PackageMatcher {
 
     fun matches(pattern: String, pkg: String): Boolean {
         // Both `com.foo` and `com.foo.*` mean "the package and anything under it";

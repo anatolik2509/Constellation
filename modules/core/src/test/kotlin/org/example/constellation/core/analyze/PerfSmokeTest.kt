@@ -1,5 +1,9 @@
 package org.example.constellation.core.analyze
 
+import org.example.constellation.core.api.AnalysisRequest
+import org.example.constellation.core.api.ClassRoot
+import org.example.constellation.core.api.ProjectAnalyzer
+
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test

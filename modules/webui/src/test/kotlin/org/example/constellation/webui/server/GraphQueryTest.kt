@@ -1,11 +1,11 @@
 package org.example.constellation.webui.server
 
-import org.example.constellation.core.model.ClassKind
-import org.example.constellation.core.model.ClassOrigin
-import org.example.constellation.core.model.Edge
-import org.example.constellation.core.model.Node
-import org.example.constellation.core.model.Relation
-import org.example.constellation.core.traits.DataModel
+import org.example.constellation.core.api.model.ClassKind
+import org.example.constellation.core.api.model.ClassOrigin
+import org.example.constellation.core.api.model.Edge
+import org.example.constellation.core.api.model.Node
+import org.example.constellation.core.api.model.Relation
+import org.example.constellation.core.api.traits.DataModel
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -74,8 +74,8 @@ class GraphQueryTest {
         val stat = node(
             "app.Registry", origin = ClassOrigin.Project("app", "main"),
             traits = listOf(
-                org.example.constellation.core.traits.StaticComponent(
-                    org.example.constellation.core.traits.StaticComponent.CarrierKind.OBJECT,
+                org.example.constellation.core.api.traits.StaticComponent(
+                    org.example.constellation.core.api.traits.StaticComponent.CarrierKind.OBJECT,
                 ),
             ),
         )
@@ -93,7 +93,7 @@ class GraphQueryTest {
         id: String,
         kind: ClassKind = ClassKind.CLASS,
         origin: ClassOrigin,
-        traits: List<org.example.constellation.core.traits.ClassTrait> = emptyList(),
+        traits: List<org.example.constellation.core.api.traits.ClassTrait> = emptyList(),
     ) = Node(
         id = id, kind = kind, origin = origin, pkg = id.substringBeforeLast('.', ""),
         simpleName = id.substringAfterLast('.'), traits = traits,
