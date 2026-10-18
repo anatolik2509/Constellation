@@ -9,6 +9,7 @@ import org.example.constellation.core.api.model.ClassKind
 import org.example.constellation.core.api.model.ClassOrigin
 import org.example.constellation.core.api.model.CodeGraph
 import org.example.constellation.core.api.model.Edge
+import org.example.constellation.core.api.model.MethodTrait
 import org.example.constellation.core.api.model.Node
 import org.example.constellation.core.api.model.Relation
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -79,7 +80,7 @@ class ProjectAnalyzerTest {
         val e = edge(g, "demo.animal.DogService", "demo.animal.Dog", Relation.CALLS)
         assertNotNull(e)
         // new Dog() -> <init>; bark deduped; eat once; sorted by name
-        assertEquals(listOf("<init>", "bark", "eat"), e!!.methods.map { it.name })
+        assertEquals(listOf("<init>", "bark", "eat"), e!!.methods.map { it.signature.name })
         assertEquals("<init>(): void", e.methods.first().render())
         assertEquals("eat(): void", e.methods.last().render())
     }
@@ -91,7 +92,7 @@ class ProjectAnalyzerTest {
         val g = analyze()
         val e = edge(g, "demo.pick.PickerUser", "demo.pick.Picker", Relation.CALLS)
         assertNotNull(e)
-        val picks = e!!.methods.filter { it.name == "pick" }
+        val picks = e!!.methods.filter { it.signature.name == "pick" }
         assertEquals(2, picks.size, "overloads collapsed: ${e.methods}")
     }
 
@@ -100,7 +101,7 @@ class ProjectAnalyzerTest {
         val g = analyze()
         assertTrue(
             edge(g, "demo.animal.DogService", "demo.animal.Dog", Relation.CALLS)
-                ?.methods?.any { it.name == "<init>" } == true,
+                ?.methods?.any { it.signature.name == "<init>" } == true,
         )
         assertNotNull(edge(g, "demo.animal.DogService", "demo.animal.Animal", Relation.CALLS))
     }
@@ -153,18 +154,48 @@ class ProjectAnalyzerTest {
         val g = analyze()
         assertTrue(
             edge(g, "demo.stat.StatCaller", "demo.app.AppException", Relation.CALLS_STATIC)
-                ?.methods?.any { it.name == "wrap" } == true,
+                ?.methods?.any { it.signature.name == "wrap" } == true,
         )
         assertTrue(
             edge(g, "demo.stat.StatCaller", "demo.app.AppException", Relation.CALLS)
-                ?.methods?.any { it.name == "<init>" } == true,
+                ?.methods?.any { it.signature.name == "<init>" } == true,
         )
     }
 
     @Test
     fun `no clinit call edges`() {
         val g = analyze()
-        assertTrue(g.edges.flatMap { it.methods }.none { it.name == "<clinit>" })
+        assertTrue(g.edges.flatMap { it.methods }.none { it.signature.name == "<clinit>" })
+    }
+
+    @Test
+    fun `declared methods carry traits`() {
+        val g = analyze()
+        val point = node(g, "demo.model.Point")!!
+        assertEquals(setOf(MethodTrait.GETTER), point.declaredMethods.first { it.signature.name == "getX" }.traits)
+        assertEquals(setOf(MethodTrait.SETTER), point.declaredMethods.first { it.signature.name == "setX" }.traits)
+        assertEquals(setOf(MethodTrait.CONSTRUCTOR), point.declaredMethods.first { it.signature.name == "<init>" }.traits)
+        val ext = node(g, "demo.stat.FileUtils")!!.declaredMethods.first { it.signature.name == "ext" }
+        assertTrue(MethodTrait.STATIC in ext.traits, "static declaration must carry STATIC: ${ext.traits}")
+    }
+
+    @Test
+    fun `call records carry traits but never STATIC`() {
+        val g = analyze()
+        val dogInit = edge(g, "demo.animal.DogService", "demo.animal.Dog", Relation.CALLS)!!
+            .methods.first { it.signature.name == "<init>" }
+        assertEquals(setOf(MethodTrait.CONSTRUCTOR), dogInit.traits)
+
+        val calls = edge(g, "demo.call.CallUser", "demo.call.CallTarget", Relation.CALLS)!!
+        assertEquals(setOf(MethodTrait.GETTER), calls.methods.first { it.signature.name == "getX" }.traits)
+        assertEquals(setOf(MethodTrait.SETTER), calls.methods.first { it.signature.name == "setX" }.traits)
+        assertEquals(setOf(MethodTrait.GETTER), calls.methods.first { it.signature.name == "isReady" }.traits)
+        assertEquals(emptySet<MethodTrait>(), calls.methods.first { it.signature.name == "getAt" }.traits)
+        assertEquals(emptySet<MethodTrait>(), calls.methods.first { it.signature.name == "setTag" }.traits)
+
+        val staticRecord = edge(g, "demo.call.CallUser", "demo.call.CallTarget", Relation.CALLS_STATIC)!!
+            .methods.first { it.signature.name == "stat" }
+        assertEquals(emptySet<MethodTrait>(), staticRecord.traits)
     }
 
     @Test
@@ -208,7 +239,7 @@ class ProjectAnalyzerTest {
         val g = analyze()
         val e = edge(g, "demo.animal.DogService", "extlib.Side", Relation.CALLS)
         assertNotNull(e)
-        assertTrue(e!!.methods.any { it.name == "ping" })
+        assertTrue(e!!.methods.any { it.signature.name == "ping" })
     }
 
     @Test

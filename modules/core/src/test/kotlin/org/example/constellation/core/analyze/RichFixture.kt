@@ -347,4 +347,32 @@ val RICH_FIXTURE: Map<String, String> = mapOf(
             }
         }
     """.trimIndent(),
+
+    /** Method traits: getters/setters/constructor shapes, plus near-misses that must NOT qualify. */
+    "demo/call/CallTarget.java" to """
+        package demo.call;
+        public class CallTarget {
+            public static int stat(int x) { return x; }
+            public int getX() { return 1; }
+            public void setX(int v) { }
+            public boolean isReady() { return true; }
+            public int getAt(int i) { return 0; }
+            public String setTag(String t) { return t; }
+        }
+    """.trimIndent(),
+
+    "demo/call/CallUser.java" to """
+        package demo.call;
+        public class CallUser {
+            public void use() {
+                CallTarget.stat(1);
+                CallTarget t = new CallTarget();
+                t.getX();
+                t.setX(2);
+                t.isReady();
+                t.getAt(0);
+                t.setTag("z");
+            }
+        }
+    """.trimIndent(),
 )

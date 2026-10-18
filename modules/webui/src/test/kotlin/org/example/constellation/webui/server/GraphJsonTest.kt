@@ -5,7 +5,9 @@ import org.example.constellation.core.api.model.ClassOrigin
 import org.example.constellation.core.api.model.CodeGraph
 import org.example.constellation.core.api.model.Edge
 import org.example.constellation.core.api.model.GraphStats
+import org.example.constellation.core.api.model.MethodInfo
 import org.example.constellation.core.api.model.MethodSignature
+import org.example.constellation.core.api.model.MethodTrait
 import org.example.constellation.core.api.model.Node
 import org.example.constellation.core.api.model.PrimitiveKind
 import org.example.constellation.core.api.model.Relation
@@ -28,7 +30,10 @@ class GraphJsonTest {
                 origin = ClassOrigin.Project("app", "main"),
                 pkg = "demo", simpleName = "Foo", sourceFile = "Foo.java",
                 declaredMethods = listOf(
-                    MethodSignature("run", emptyList(), TypeRef.Primitive(PrimitiveKind.VOID)),
+                    MethodInfo(
+                        MethodSignature("getName", emptyList(), TypeRef.Class("java.lang.String")),
+                        setOf(MethodTrait.GETTER),
+                    ),
                 ),
             ),
             Node(
@@ -53,10 +58,16 @@ class GraphJsonTest {
             Edge(
                 "demo.Foo", "java.lang.String", Relation.CALLS,
                 methods = listOf(
-                    MethodSignature(
-                        "valueOf",
-                        listOf(TypeRef.Primitive(PrimitiveKind.INT)),
-                        TypeRef.Class("java.lang.String"),
+                    MethodInfo(
+                        MethodSignature(
+                            "valueOf",
+                            listOf(TypeRef.Primitive(PrimitiveKind.INT)),
+                            TypeRef.Class("java.lang.String"),
+                        ),
+                    ),
+                    MethodInfo(
+                        MethodSignature("isEmpty", emptyList(), TypeRef.Primitive(PrimitiveKind.BOOLEAN)),
+                        setOf(MethodTrait.GETTER),
                     ),
                 ),
             ),
@@ -71,11 +82,13 @@ class GraphJsonTest {
         assertTrue(json.contains("\"id\":\"demo.Foo\""))
         assertTrue(json.contains("\"category\":\"CLASS\""))
         assertTrue(json.contains("\"category\":\"DATA\""))
-        assertTrue(json.contains("\"display\":\"run(): void\""))
+        assertTrue(json.contains("\"display\":\"getName(): String\""))
         assertTrue(json.contains("\"display\":\"valueOf(int): String\""))
         assertTrue(json.contains("\"sourceFile\":\"Foo.java\""))
         assertTrue(json.contains("\"module\":\"app\""))
         assertTrue(json.contains("\"carrier\":\"KOTLIN_DATA_CLASS\""))
+        // method traits ride on both declared methods and call records
+        assertTrue(json.contains("\"traits\":[\"GETTER\"]"))
     }
 
     @Test
@@ -87,6 +100,7 @@ class GraphJsonTest {
         assertTrue(json.contains("\"DATA\":1"))
         assertTrue(json.contains("\"constellation.data-model\""))
         assertTrue(json.contains("\"displayName\":\"Data model\""))
+        assertTrue(json.contains("\"methodTraitCatalog\":[{\"id\":\"GETTER\",\"count\":1}]"))
         // external package java.lang must not be offered in the package list
         assertTrue(json.contains("\"name\":\"demo\""))
     }

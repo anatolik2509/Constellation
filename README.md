@@ -67,6 +67,9 @@ constellation {
 - **категории вершин** — Class, Data model, Interface, Annotation, External, Test;
 - **трейты** — отдельные тумблеры для каждого трейта из каталога провайдеров
   (Static component, Data model — если не покрыт категорией, и любые будущие);
+- **трейты методов** — скрытие вызовов по трейту (constructor, getter, setter);
+  записи обрезаются внутри рёбер, опустевшие рёбра исчезают; у методов в панели
+  деталей трейты показаны бейджами;
 - **типы рёбер**;
 - **пакеты** — выбор пакета включает и все его подпакеты;
 - **скрытие runtime-пакетов** (`java.*`, `kotlin.*`, …) — включено по умолчанию;
@@ -76,8 +79,8 @@ constellation {
   `pkg (N)`, рёбра его классов агрегируются в общее ребро «depends»
   (клик по ноде разворачивает; вид можно пошарить через `?collapse=pkg1,pkg2`).
 
-API: `GET /api/graph?kinds=CLASS,DATA&edges=CALLS&pkgs=com.foo&xpkgs=java.*`,
-`GET /api/meta` — счётчики и каталог трейтов.
+API: `GET /api/graph?kinds=CLASS,DATA&edges=CALLS&pkgs=com.foo&xpkgs=java.*&xcalltraits=GETTER`,
+`GET /api/meta` — счётчики и каталоги трейтов (классов и методов).
 
 ## Архитектура
 
@@ -117,7 +120,7 @@ API: `GET /api/graph?kinds=CLASS,DATA&edges=CALLS&pkgs=com.foo&xpkgs=java.*`,
 ./gradlew test -PskipPerfSmoke   # без перф-смока
 ```
 
-Тесты (~85): анализатор на javac-фикстурах, трейты/реестр (включая
+Тесты (~103): анализатор на javac-фикстурах, трейты/реестр (включая
 ServiceLoader), предикаты, JSON/API, смок сервера, ProjectBuilder + TestKit
 для плагина, self-dogfood и perf-smoke.
 

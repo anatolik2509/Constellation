@@ -234,6 +234,7 @@ section { border-top: 1px solid var(--hairline); padding-top: 12px; }
 #sidebar .edge-head .dir { color: var(--ink-3); }
 #sidebar .other { color: var(--ink-2); }
 #sidebar .methods { color: var(--ink-3); font-size: 11px; }
+#sidebar .mtraits { color: var(--ink-3); font-size: 11px; opacity: 0.85; }
 #sidebar .close {
   float: right;
   background: none;

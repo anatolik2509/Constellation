@@ -5,7 +5,9 @@ import org.example.constellation.core.api.model.ClassOrigin
 import org.example.constellation.core.api.model.CodeGraph
 import org.example.constellation.core.api.model.Edge
 import org.example.constellation.core.api.model.GraphStats
+import org.example.constellation.core.api.model.MethodInfo
 import org.example.constellation.core.api.model.MethodSignature
+import org.example.constellation.core.api.model.MethodTrait
 import org.example.constellation.core.api.model.Node
 import org.example.constellation.core.api.model.PrimitiveKind
 import org.example.constellation.core.api.model.Relation
@@ -30,7 +32,7 @@ class PredicatesTest {
         id = id, kind = kind, origin = origin, pkg = pkg,
         simpleName = id.substringAfterLast('.'), sourceFile = null,
         declaredMethods = listOf(
-            MethodSignature("x", listOf(TypeRef.Primitive(PrimitiveKind.INT)), TypeRef.Primitive(PrimitiveKind.VOID)),
+            MethodInfo(MethodSignature("x", listOf(TypeRef.Primitive(PrimitiveKind.INT)), TypeRef.Primitive(PrimitiveKind.VOID))),
         ),
         traits = traits,
     )
@@ -96,6 +98,36 @@ class PredicatesTest {
         assertTrue(out.edges.none { it.type == Relation.CALLS })
         assertFalse(out.nodes.any { it.id == "lib.Util" }) // survived only through CALLS
         assertTrue(out.nodes.any { it.id == "app.Service" })
+    }
+
+    @Test
+    fun `filterCalls trims records, drops emptied edges and orphaned externals`() {
+        val getter = MethodInfo(
+            MethodSignature("getX", emptyList(), TypeRef.Class("java.lang.String")),
+            setOf(MethodTrait.GETTER),
+        )
+        val plain = MethodInfo(MethodSignature("work", emptyList(), TypeRef.Primitive(PrimitiveKind.VOID)))
+        val graph = CodeGraph(
+            nodes = listOf(
+                node("app.A", pkg = "app"),
+                node("app.B", pkg = "app"),
+                node("lib.X", origin = ClassOrigin.External, pkg = "lib"),
+            ),
+            edges = listOf(
+                Edge("app.A", "app.B", Relation.CALLS, listOf(getter, plain)),
+                Edge("app.A", "lib.X", Relation.CALLS, listOf(getter)), // emptied -> dropped
+                Edge("app.B", "app.A", Relation.EXTENDS), // structural, always survives
+            ),
+            stats = GraphStats(3, 0, 0, emptyList(), emptyList()),
+        )
+
+        val out = graph.filterCalls { MethodTrait.GETTER !in it.traits }
+
+        val keptCall = out.edges.first { it.type == Relation.CALLS }
+        assertEquals(listOf("work"), keptCall.methods.map { it.signature.name })
+        assertTrue(out.edges.none { it.to == "lib.X" })
+        assertTrue(out.nodes.none { it.id == "lib.X" }) // pruned by the same orphan rule
+        assertTrue(out.edges.any { it.type == Relation.EXTENDS })
     }
 
     @Test

@@ -3,8 +3,13 @@ package org.example.constellation.webui.server
 import org.example.constellation.core.api.model.ClassKind
 import org.example.constellation.core.api.model.ClassOrigin
 import org.example.constellation.core.api.model.Edge
+import org.example.constellation.core.api.model.MethodInfo
+import org.example.constellation.core.api.model.MethodSignature
+import org.example.constellation.core.api.model.MethodTrait
 import org.example.constellation.core.api.model.Node
+import org.example.constellation.core.api.model.PrimitiveKind
 import org.example.constellation.core.api.model.Relation
+import org.example.constellation.core.api.model.TypeRef
 import org.example.constellation.core.api.traits.DataModel
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -92,9 +97,25 @@ class GraphQueryTest {
     }
 
     @Test
+    fun `xcalltraits keeps call records without the listed traits`() {
+        val filters = GraphQuery.parse("xcalltraits=GETTER,SETTER")
+        val getterCall = MethodInfo(
+            MethodSignature("getX", emptyList(), TypeRef.Class("java.lang.String")),
+            setOf(MethodTrait.GETTER),
+        )
+        val ctorCall = MethodInfo(
+            MethodSignature("<init>", emptyList(), TypeRef.Primitive(PrimitiveKind.VOID)),
+            setOf(MethodTrait.CONSTRUCTOR),
+        )
+        assertTrue(!filters.calls(getterCall))
+        assertTrue(filters.calls(ctorCall))
+    }
+
+    @Test
     fun `unknown token throws`() {
         assertThrows(IllegalArgumentException::class.java) { GraphQuery.parse("kinds=CLASS,NOPE") }
         assertThrows(IllegalArgumentException::class.java) { GraphQuery.parse("edges=NOPE") }
+        assertThrows(IllegalArgumentException::class.java) { GraphQuery.parse("xcalltraits=NOPE") }
     }
 
     private fun node(

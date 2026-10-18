@@ -19,8 +19,8 @@ data class Node(
     val simpleName: String,
     /** Source file name if known; null for external classes. */
     val sourceFile: String? = null,
-    /** Declared methods, sorted. */
-    val declaredMethods: List<MethodSignature> = emptyList(),
+    /** Declared methods with their traits, sorted. */
+    val declaredMethods: List<MethodInfo> = emptyList(),
     /** Provider-assigned traits (e.g. DataModel), sorted by id. */
     val traits: List<ClassTrait> = emptyList(),
 ) {

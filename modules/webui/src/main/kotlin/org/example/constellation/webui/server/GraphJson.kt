@@ -66,6 +66,23 @@ object GraphJson {
                         }
                     },
             )
+            // Filterable method traits, counted over call records (STATIC is the edge type,
+            // so it never appears here). Order follows the enum, i.e. stable.
+            putArray("methodTraitCatalog").addAll(
+                g.edges
+                    .filter { it.type == Relation.CALLS || it.type == Relation.CALLS_STATIC }
+                    .flatMap { it.methods }
+                    .flatMap { it.traits.asSequence() }
+                    .groupingBy { it }
+                    .eachCount()
+                    .toSortedMap()
+                    .map { (trait, count) ->
+                        obj {
+                            put("id", trait.name)
+                            put("count", count)
+                        }
+                    },
+            )
             // Analyzed packages only; externals would dump half of the JDK here.
             putArray("packages").addAll(
                 g.nodes.filter { !it.isExternal }
@@ -105,9 +122,10 @@ object GraphJson {
         putArray("methods").addAll(
             n.declaredMethods.map { m ->
                 obj {
-                    put("name", m.name)
-                    putArray("params").addAll(m.params.map { json.textNode(it.render()) })
+                    put("name", m.signature.name)
+                    putArray("params").addAll(m.signature.params.map { json.textNode(it.render()) })
                     put("display", m.render())
+                    putArray("traits").addAll(m.traits.sorted().map { json.textNode(it.name) })
                 }
             },
         )
@@ -133,9 +151,10 @@ object GraphJson {
         }
     }
 
-    private fun methodRefJson(m: MethodSignature): JsonNode = obj {
-        put("name", m.name)
+    private fun methodRefJson(m: org.example.constellation.core.api.model.MethodInfo): JsonNode = obj {
+        put("name", m.signature.name)
         put("display", m.render())
+        putArray("traits").addAll(m.traits.sorted().map { json.textNode(it.name) })
     }
 
     // ---------- small builders ----------

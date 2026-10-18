@@ -1,5 +1,7 @@
 package org.example.constellation.webui.server
 
+import org.example.constellation.core.api.model.MethodInfo
+import org.example.constellation.core.api.model.MethodTrait
 import org.example.constellation.core.api.model.Relation
 import org.example.constellation.core.api.traits.TraitId
 import org.example.constellation.core.api.query.EdgePredicate
@@ -18,14 +20,15 @@ import java.nio.charset.StandardCharsets
  */
 object GraphQuery {
 
-    fun parse(query: String?): Pair<NodePredicate, EdgePredicate> {
-        if (query.isNullOrBlank()) return NodePredicates.all() to EdgePredicates.all()
+    fun parse(query: String?): GraphFilters {
+        if (query.isNullOrBlank()) return GraphFilters(NodePredicates.all(), EdgePredicates.all())
 
         var categories: Set<String>? = null
         var relations: Set<Relation>? = null
         var packages: List<String>? = null
         var excludedPackages: List<String>? = null
         var excludedTraits: List<TraitId>? = null
+        var excludedCallTraits: List<MethodTrait>? = null
 
         for (raw in query.split('&')) {
             val eq = raw.indexOf('=')
@@ -46,6 +49,9 @@ object GraphQuery {
                 "xtraits" -> excludedTraits = value.split(',').map { it.trim() }
                     .filter { it.isNotEmpty() }.map { TraitId(it) }
                     .takeIf { it.isNotEmpty() }
+                "xcalltraits" -> excludedCallTraits = value.split(',').map { it.trim() }
+                    .filter { it.isNotEmpty() }.map { methodTrait(it) }
+                    .takeIf { it.isNotEmpty() }
             }
         }
 
@@ -59,7 +65,19 @@ object GraphQuery {
         if (excludedTraits != null) {
             node = node and !NodePredicates.hasAnyTrait(excludedTraits)
         }
-        return node to (relations?.let { EdgePredicates.types(*it.toTypedArray()) } ?: EdgePredicates.all())
+        val edges = relations?.let { EdgePredicates.types(*it.toTypedArray()) } ?: EdgePredicates.all()
+        val calls: ((MethodInfo) -> Boolean)? =
+            excludedCallTraits?.let { excluded -> { m -> excluded.none { it in m.traits } } }
+        return GraphFilters(node, edges, calls ?: { true })
+    }
+
+    private fun methodTrait(token: String): MethodTrait {
+        if (MethodTrait.entries.none { it.name == token }) {
+            throw IllegalArgumentException(
+                "unknown method trait '$token' (expected one of ${MethodTrait.entries.map { it.name }})",
+            )
+        }
+        return MethodTrait.valueOf(token)
     }
 
     private fun categoryById(token: String): String {

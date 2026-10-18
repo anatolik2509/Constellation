@@ -51,11 +51,15 @@ Toolchain: Kotlin 2.4.20, Gradle wrapper 9.6, JVM toolchain 21.
   атрибутируются enclosing-классу через `EnclosingMethod` (`resolveOwners`).
 - `api/model/` — замкнутая модель: `Node`, `Edge`, `CodeGraph`. Всё отсортировано по
   построению, поэтому JSON детерминирован — сохраняйте это. `MethodSignature` —
-  читаемые сигнатуры (`zip(String, int[]): int`); JVM-дескрипторы существуют только
-  внутри анализатора (`analyze/internal/DescriptorParser`).
+  читаемые сигнатуры (`zip(String, int[]): int`); `MethodInfo` = сигнатура +
+  `MethodTrait`-ы (у вызовов STATIC не бывает — статика это тип ребра);
+  JVM-дескрипторы существуют только внутри анализатора
+  (`analyze/internal/DescriptorParser`, `analyze/internal/MethodTraits`).
 - `api/query/` — компонуемые предикаты `NodePredicate`/`EdgePredicate` + фабрики и
-  комбинаторы `and`/`or`/`not`, `CodeGraph.filter`. Логика фильтрации живёт только
-  здесь; HTTP-слой лишь компонует предикаты из query-параметров.
+  комбинаторы `and`/`or`/`not`, `CodeGraph.filter`; `CodeGraph.filterCalls` —
+  трансформация call-рёбер (обрезка записей по трейту метода, опустевшие рёбра
+  удаляются). Логика фильтрации живёт только здесь; HTTP-слой лишь компонует
+  предикаты из query-параметров.
 - `api/traits/` — значения трейтов и `TraitRegistry` (built-ins + ServiceLoader
   через `META-INF/services/...ClassTraitProvider`); `api/traits/spi/` — контракт
   для сторонних провайдеров (`ClassTraitProvider`, `ClassContext`,

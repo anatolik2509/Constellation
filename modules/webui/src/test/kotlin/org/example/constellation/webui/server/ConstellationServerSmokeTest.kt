@@ -58,6 +58,9 @@ class ConstellationServerSmokeTest {
                 assertEquals(200, filtered.statusCode())
                 assertTrue(filtered.body().contains("demo.Bar"))
 
+                val trimmedCalls = get("/api/graph?xcalltraits=CONSTRUCTOR")
+                assertEquals(200, trimmedCalls.statusCode())
+
                 val noTests = get("/api/graph?kinds=CLASS,INTERFACE,ANNOTATION,DATA,EXTERNAL")
                 assertEquals(200, noTests.statusCode())
                 assertTrue(!noTests.body().contains("demo.BarTest"))

@@ -4,12 +4,13 @@ import org.example.constellation.core.analyze.ClassFileProvider
 import org.example.constellation.core.analyze.ClassScanner
 import org.example.constellation.core.analyze.RawClassInfo
 import org.example.constellation.core.analyze.internal.DescriptorParser
+import org.example.constellation.core.analyze.internal.MethodTraits
 import org.example.constellation.core.api.model.ClassKind
 import org.example.constellation.core.api.model.ClassOrigin
 import org.example.constellation.core.api.model.CodeGraph
 import org.example.constellation.core.api.model.Edge
 import org.example.constellation.core.api.model.GraphStats
-import org.example.constellation.core.api.model.MethodSignature
+import org.example.constellation.core.api.model.MethodInfo
 import org.example.constellation.core.api.model.Node
 import org.example.constellation.core.api.model.ParseError
 import org.example.constellation.core.api.model.Relation
@@ -85,9 +86,14 @@ class ProjectAnalyzer {
             sourceFile = info.sourceFile,
             declaredMethods = info.methods.asSequence()
                 .filter { it.access and (SYNTHETIC or BRIDGE) == 0 }
-                .map { DescriptorParser.parseMethod(it.name, it.descriptor) }
+                .map {
+                    MethodInfo(
+                        signature = DescriptorParser.parseMethod(it.name, it.descriptor),
+                        traits = MethodTraits.ofDeclared(it.name, it.descriptor, it.access and STATIC != 0),
+                    )
+                }
                 .distinct()
-                .sortedWith(compareBy({ it.name }, { it.renderFull() }))
+                .sortedWith(compareBy({ it.signature.name }, { it.signature.renderFull() }))
                 .toList(),
             traits = registry.detectAll(ClassContext(info)),
         )
@@ -144,7 +150,7 @@ class ProjectAnalyzer {
     private class EdgeCollector(private val analyzedNames: Set<String>) {
 
         private val structuralEdges = mutableListOf<Edge>()
-        private val callMethods = mutableMapOf<CallKey, MutableSet<MethodSignature>>()
+        private val callMethods = mutableMapOf<CallKey, MutableSet<MethodInfo>>()
         val referencedExternals = sortedSetOf<String>()
 
         /** Direct inheritance: never from java/lang/Object, never to self. */
@@ -181,7 +187,10 @@ class ProjectAnalyzer {
                 if (call.name == "<init>" && call.owner == info.superName) continue
                 val relation = if (call.isStatic) Relation.CALLS_STATIC else Relation.CALLS
                 callMethods.getOrPut(CallKey(caller, call.owner, relation)) { methodSet() } +=
-                    DescriptorParser.parseMethod(call.name, call.descriptor)
+                    MethodInfo(
+                        signature = DescriptorParser.parseMethod(call.name, call.descriptor),
+                        traits = MethodTraits.ofCall(call.name, call.descriptor),
+                    )
                 externalCandidate(call.owner)
             }
         }
@@ -201,8 +210,8 @@ class ProjectAnalyzer {
             if (internal !in analyzedNames && !isExcludedClassName(internal)) referencedExternals += internal
         }
 
-        private fun methodSet(): MutableSet<MethodSignature> =
-            sortedSetOf(compareBy({ it.name }, { it.renderFull() }))
+        private fun methodSet(): MutableSet<MethodInfo> =
+            sortedSetOf(compareBy({ it.signature.name }, { it.signature.renderFull() }))
     }
 
     private data class CallKey(val from: String, val to: String, val relation: Relation)
@@ -211,6 +220,7 @@ class ProjectAnalyzer {
         private const val OBJECT = "java/lang/Object"
         private const val SYNTHETIC = 0x1000
         private const val BRIDGE = 0x0040
+        private const val STATIC = 0x0008
         private const val INTERFACE = 0x0200
         private const val ANNOTATION = 0x2000
 

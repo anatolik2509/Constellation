@@ -35,6 +35,7 @@ const state = {
   edgeTypes: new Set(EDGE_TYPES.map((e) => e.id)),
   packages: null, // null = all (no packages filter)
   hiddenTraits: new Set(), // trait ids whose carriers are hidden (xtraits)
+  hiddenCallTraits: new Set(), // method traits whose call records are hidden (xcalltraits)
   hideRuntime: true,
   groupByPackage: true,
   collapsed: new Set(), // collapsed package names (view-level, survives refilters)
@@ -69,6 +70,7 @@ function buildQuery() {
   }
   if (state.hideRuntime) params.push(`xpkgs=${encodeURIComponent(RUNTIME_PACKAGES.join(','))}`);
   if (state.hiddenTraits.size > 0) params.push(`xtraits=${encodeURIComponent([...state.hiddenTraits].join(','))}`);
+  if (state.hiddenCallTraits.size > 0) params.push(`xcalltraits=${encodeURIComponent([...state.hiddenCallTraits].join(','))}`);
   return params.length ? `?${params.join('&')}` : '';
 }
 
@@ -119,6 +121,24 @@ function buildFilterPanel() {
     const cb = e.target.closest('input[data-trait]');
     if (!cb) return;
     cb.checked ? state.hiddenTraits.delete(cb.dataset.trait) : state.hiddenTraits.add(cb.dataset.trait);
+    scheduleUpdate();
+  });
+
+  // Method-trait toggles: hide call records (constructor/getter/setter) from
+  // call edges; edges left without records disappear. STATIC is not here —
+  // static dispatch is already the "static calls" edge type.
+  const callTraitsEl = document.getElementById('methodTraitFilters');
+  const callTraitCatalog = state.meta.methodTraitCatalog || [];
+  document.getElementById('methodTraitSection').hidden = callTraitCatalog.length === 0;
+  callTraitsEl.innerHTML = callTraitCatalog.map((t) => `
+    <label title="Hide ${escapeAttr(t.id)} calls">
+      <input type="checkbox" data-calltrait="${escapeAttr(t.id)}" checked>
+      <span class="name">${escapeHtml(METHOD_TRAIT_LABEL[t.id] || t.id)}</span>
+      <span class="count">${t.count}</span></label>`).join('');
+  callTraitsEl.addEventListener('change', (e) => {
+    const cb = e.target.closest('input[data-calltrait]');
+    if (!cb) return;
+    cb.checked ? state.hiddenCallTraits.delete(cb.dataset.calltrait) : state.hiddenCallTraits.add(cb.dataset.calltrait);
     scheduleUpdate();
   });
 
@@ -530,6 +550,18 @@ const STATIC_CARRIER_LABEL = {
   STATIC_NESTED: 'static nested',
   STATIC_HOLDER: 'static holder',
 };
+const METHOD_TRAIT_LABEL = {
+  STATIC: 'static',
+  CONSTRUCTOR: 'constructor',
+  GETTER: 'getter',
+  SETTER: 'setter',
+};
+
+/** Trait badges next to a method signature, e.g. "getX(): int  getter". */
+function methodTraitsHtml(traits) {
+  if (!traits || traits.length === 0) return '';
+  return ` <span class="mtraits">${traits.map((t) => METHOD_TRAIT_LABEL[t] || t).join(' · ')}</span>`;
+}
 
 /** Provider traits rendered generically; known payloads get nicer labels. */
 function traitsBadge(node) {
@@ -566,7 +598,7 @@ function showNodeDetails(id) {
       <div class="edge-head"><span class="dir">${dir === 'out' ? '→' : '←'}</span>
         <span class="other">${escapeHtml(dir === 'out' ? e.to : e.from)}</span>
         <span class="dir">${TYPE_LABEL[e.type]}</span></div>
-      ${(e.type === 'CALLS' || e.type === 'CALLS_STATIC') && e.methods.length ? `<div class="methods">${e.methods.map((m) => escapeHtml(m.display)).join(', ')}</div>` : ''}
+      ${(e.type === 'CALLS' || e.type === 'CALLS_STATIC') && e.methods.length ? `<div class="methods">${e.methods.map((m) => escapeHtml(m.display) + (m.traits && m.traits.length ? ` <span class="mtraits">(${m.traits.map((t) => METHOD_TRAIT_LABEL[t] || t).join('·')})</span>` : '')).join(', ')}</div>` : ''}
     </div>`).join('');
 
   sb.innerHTML = `
@@ -578,7 +610,7 @@ function showNodeDetails(id) {
     ${originLines(node)}
     ${node.sourceFile ? `<div class="kv">source: <code>${escapeHtml(node.sourceFile)}</code></div>` : ''}
     <h4>Methods (${node.methods.length})</h4>
-    <ul>${node.methods.slice(0, 40).map((m) => `<li><code>${escapeHtml(m.display)}</code></li>`).join('')}
+    <ul>${node.methods.slice(0, 40).map((m) => `<li><code>${escapeHtml(m.display)}</code>${methodTraitsHtml(m.traits)}</li>`).join('')}
         ${node.methods.length > 40 ? `<li>… ${node.methods.length - 40} more</li>` : ''}</ul>
     <h4>Outgoing (${out.length})</h4>${out.length ? edgeList(out, 'out') : '<div class="kv">none</div>'}
     <h4>Incoming (${inc.length})</h4>${inc.length ? edgeList(inc, 'in') : '<div class="kv">none</div>'}`;

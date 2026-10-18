@@ -69,6 +69,6 @@ class SelfDogfoodTest {
                 it.type == Relation.CALLS_STATIC
         }
         assertNotNull(e, "no ProjectAnalyzer -> ComparisonsKt static-call edge")
-        assertTrue(e!!.methods.any { it.name == "compareValues" })
+        assertTrue(e!!.methods.any { it.signature.name == "compareValues" })
     }
 }
